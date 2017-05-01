@@ -714,6 +714,8 @@ X86Arch::~X86Arch(void) {}
 void X86Arch::PrepareModule(llvm::Module *mod) const {
   std::string dl;
   std::string triple;
+
+  /// \todo the interface is spilling implementation-specific values (i.e.: mips)
   switch (os_name) {
     case kOSInvalid:
       LOG(FATAL) << "Cannot convert module for an unrecognized OS.";
@@ -721,6 +723,8 @@ void X86Arch::PrepareModule(llvm::Module *mod) const {
     case kOSLinux:
       switch (arch_name) {
         case kArchInvalid:
+        case kArchMips32:
+        case kArchMips64:
           LOG(FATAL)
               << "Cannot convert module for an unrecognized architecture.";
             break;
@@ -743,6 +747,8 @@ void X86Arch::PrepareModule(llvm::Module *mod) const {
     case kOSmacOS:
       switch (arch_name) {
         case kArchInvalid:
+        case kArchMips32:
+        case kArchMips64:
           LOG(FATAL)
               << "Cannot convert module for an unrecognized architecture.";
           break;

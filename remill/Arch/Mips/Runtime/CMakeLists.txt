@@ -1,13 +1,11 @@
 # Copyright 2017 Peter Goodman (peter@trailofbits.com), all rights reserved.
 
-macro(COMPILE_X86_SEMANTICS name address_size has_avx has_avx512)
+macro(COMPILE_MIPS_SEMANTICS name address_size)
     set(SEMANTICS_CXX_FLAGS
 
         -I${CMAKE_SOURCE_DIR}
         -emit-llvm
         -DADDRESS_SIZE_BITS=${address_size}
-        -DHAS_FEATURE_AVX=${has_avx}
-        -DHAS_FEATURE_AVX512=${has_avx512}
 
         -std=gnu++11
         
@@ -99,17 +97,7 @@ macro(COMPILE_X86_SEMANTICS name address_size has_avx has_avx512)
         FILES       ${CMAKE_CURRENT_BINARY_DIR}/${name}.bc
         DESTINATION share/remill/semantics
     )
-
 endmacro()
 
-COMPILE_X86_SEMANTICS(x86 32 0 0)
-COMPILE_X86_SEMANTICS(x86_avx 32 1 0)
-COMPILE_X86_SEMANTICS(x86_avx512 32 1 1)
-
-# only do 64-bit binaries on 64-bit platforms
-if(CMAKE_SIZEOF_VOID_P EQUAL 8)
-    COMPILE_X86_SEMANTICS(amd64 64 0 0)
-    COMPILE_X86_SEMANTICS(amd64_avx 64 1 0)
-    COMPILE_X86_SEMANTICS(amd64_avx512 64 1 1)
-endif()
-
+COMPILE_MIPS_SEMANTICS(mips32 32)
+COMPILE_MIPS_SEMANTICS(mips64 64)

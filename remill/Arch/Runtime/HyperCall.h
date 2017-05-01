@@ -29,6 +29,7 @@ class SyncHyperCall {
 
     kX86EmulateInstruction,
     kAMD64EmulateInstruction,
+    kMipsEmulateInstruction,
 
     kAssertPrivileged,
 
