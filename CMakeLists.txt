@@ -98,7 +98,7 @@ if (NOT WIN32)
 endif ()
 
 # warnings and compiler settings
-set(PROJECT_CXXWARNINGS "-Wall -Wextra -Werror -pedantic -Wno-unused-parameter -Wno-c++98-compat -Wno-unreachable-code-return -Wno-nested-anon-types -Wno-extended-offsetof -Wno-gnu-anonymous-struct -Wno-gnu-designator -Wno-variadic-macros -Wno-gnu-zero-variadic-macro-arguments -Wno-gnu-statement-expression -Wno-return-type-c-linkage -Wno-c99-extensions -Wno-ignored-attributes -Wno-unused-local-typedef")
+set(PROJECT_CXXWARNINGS "-Wall -Wextra -Wno-unused-parameter -Wno-c++98-compat -Wno-unreachable-code-return -Wno-nested-anon-types -Wno-extended-offsetof -Wno-gnu-anonymous-struct -Wno-gnu-designator -Wno-variadic-macros -Wno-gnu-zero-variadic-macro-arguments -Wno-gnu-statement-expression -Wno-return-type-c-linkage -Wno-c99-extensions -Wno-ignored-attributes -Wno-unused-local-typedef")
 set(PROJECT_CXXFLAGS "${PROJECT_CXXFLAGS} -Wno-unknown-warning-option ${PROJECT_CXXWARNINGS} -fPIC -fno-omit-frame-pointer -fvisibility-inlines-hidden -fno-exceptions -fno-asynchronous-unwind-tables -fno-rtti")
 
 # default build type
@@ -144,6 +144,9 @@ list(APPEND PROJECT_LIBRARIES glog::glog)
 find_package(gflags REQUIRED)
 list(APPEND PROJECT_LIBRARIES gflags)
 
+# todo: capstone
+list(APPEND PROJECT_LIBRARIES capstone)
+
 #
 # target settings
 #
@@ -152,6 +155,8 @@ list(APPEND PROJECT_DEFINITIONS "INSTALL_SEMANTICS_DIR=\"${CMAKE_INSTALL_PREFIX}
 list(APPEND PROJECT_DEFINITIONS "BUILD_SEMANTICS_DIR=\"${CMAKE_CURRENT_BINARY_DIR}/remill/Arch/X86/Runtime/\"")
 
 add_library(${PROJECT_NAME} STATIC
+    remill/Arch/Mips/Arch.cpp
+
     remill/Arch/X86/Arch.cpp
     remill/Arch/Arch.cpp
     remill/Arch/Instruction.cpp
@@ -186,13 +191,15 @@ install(DIRECTORY DESTINATION "share/remill")
 #
 
 add_custom_target(semantics)
+
 add_subdirectory(remill/Arch/X86/Runtime)
+add_subdirectory(remill/Arch/Mips/Runtime)
+
 
 # mcsema needs to be manually cloned into this repo.
 if (EXISTS ${CMAKE_SOURCE_DIR}/tools/mcsema)
     add_subdirectory(tools/mcsema)
 endif ()
-
 
 # only enable tests when compiling under x64
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)

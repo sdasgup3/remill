@@ -42,10 +42,12 @@ static unsigned AddressSize(ArchName arch_name) {
     case kArchX86:
     case kArchX86_AVX:
     case kArchX86_AVX512:
+    case kArchMips32:
       return 32;
     case kArchAMD64:
     case kArchAMD64_AVX:
     case kArchAMD64_AVX512:
+    case kArchMips64:
       return 64;
   }
 }
@@ -77,6 +79,20 @@ const Arch *Arch::Get(OSName os_name_, ArchName arch_name_) {
       if (!arch) {
         DLOG(INFO) << "Using architecture: X86";
         arch = ArchPtr(GetX86(os_name_, arch_name_));
+      }
+      return arch.get();
+    }
+
+    case kArchMips32:
+    case kArchMips64: {
+      static ArchCache gArchMips;
+      auto &arch = gArchMips[os_name_];
+      if (!arch) {
+        std::string message("Using architecture: MIPS");
+        message += (arch_name_ == kArchMips32 ? "32" : "64");
+
+        DLOG(INFO) << message;
+        arch = ArchPtr(GetMips(os_name_, arch_name_));
       }
       return arch.get();
     }
