@@ -26,6 +26,8 @@ enum ArchName : uint32_t {
   kArchX86,
   kArchX86_AVX,
   kArchX86_AVX512,
+  kArchMips32,
+  kArchMips64,
   kArchAMD64,
   kArchAMD64_AVX,
   kArchAMD64_AVX512
