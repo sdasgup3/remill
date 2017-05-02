@@ -33,19 +33,13 @@ void _Write(Memory *, Reg &reg, IF_64BIT_ELSE(uint64_t, uint32_t) val) {
 }
 
 //
-// cpu exceptions
+// CPU exceptions
 //
-
-/// \todo convert this to a sync hyper call
-enum class ExceptionType
-{
-  IntegerOverflow
-};
 
 #define RaiseException(condition, type) \
   do { \
     if (condition) { \
-      return __remill_error(memory, state, Read(REG_PC)); \
+      return __remill_sync_hyper_call(memory, state, SyncHyperCall::k##type); \
     } \
   } while (false)
 
