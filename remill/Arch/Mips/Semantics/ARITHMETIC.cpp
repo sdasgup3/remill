@@ -60,7 +60,7 @@ DEF_SEM(ADD_IMPL, D dst, S1 src1, S2 src2) {
 
   RaiseException(
     ((sum >> 31) & 1) != ((sum >> 30) & 1),
-    ExceptionType::IntegerOverflow
+    IntegerOverflow
   );
 
   WriteZExt(dst, sum);

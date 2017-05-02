@@ -33,7 +33,13 @@ class SyncHyperCall {
 
     kAssertPrivileged,
 
-    kDebugBreakpoint
+    kDebugBreakpoint,
+
+    //
+    // mips exceptions
+    //
+
+    kIntegerOverflow
   };
 } __attribute__((packed));
 
