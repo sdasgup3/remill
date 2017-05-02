@@ -39,25 +39,6 @@ class MipsArch : public Arch {
   void PrepareModule(llvm::Module *mod) const override;
   uint64_t ProgramCounter(const ArchState *state) const override;
   Instruction *DecodeInstruction(uint64_t address, const std::string &instr_bytes) const override;
-
- private:
-  /// This is a cs_insn wrapper with an automatic releaser (cs_free)
-  typedef std::unique_ptr<cs_insn, std::function<void (cs_insn *)>> CapstoneInstruction;
-
-  /// Disassembles the specified buffer trying to return exactly one opcode.
-  CapstoneInstruction DisassembleInstruction(std::uint64_t address, const std::string &buffer) const noexcept;
-
-  /// Generates the semantic function name associated with the Capstone instruction by enumerating the operand types.
-  std::string GetSemanticFunctionName(const CapstoneInstruction &capstone_instr) const noexcept;
-
-  /// Converts the specified instruction to string
-  bool ConvertToRemillInstruction(const std::unique_ptr<remill::Instruction> &remill_instr, const CapstoneInstruction &capstone_instr) const noexcept;
-
-  /// Returns the instruction category (see Instruction::Category) used by Remill to understand how the instruction should behave.
-  Instruction::Category GetCapstoneInstructionCategory(const CapstoneInstruction &capstone_instr) const noexcept;
-
-  // Fills the given vector with the instruction operands
-  bool GetCapstoneInstructionOperands(const CapstoneInstruction &capstone_instr, std::vector<remill::Operand> &operands) const noexcept;
 };
 
 }  // namespace remill
