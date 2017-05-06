@@ -3,16 +3,22 @@
 #include <iostream>
 #include <array>
 #include <iomanip>
+#include <vector>
+#include <algorithm>
 
 #include <remill/Arch/Instruction.h>
 #include <remill/Arch/Mips/Disassembler.h>
+
+void PrintCapstoneInstruction(const remill::CapstoneInstruction &capstone_instr, const std::string &semantic_function) noexcept;
 
 int main(int argc, char *argv[], char *envp[]) {
   static_cast<void>(envp);
 
   if (argc != 2) {
-    std::cout << "Usage:\n"
-                 "\tmipsdec /path/to/mips-executable\n";
+    std::cout <<
+      "This is a debugging/development tool for the MIPS module of remill.\n\n"
+      "Usage:\n"
+      "\tmipsdec /path/to/mips-executable\n";
 
     return 1;
   }
@@ -23,20 +29,39 @@ int main(int argc, char *argv[], char *envp[]) {
     ELFParser elf_parser(path);
     remill::MipsDisassembler disassembler(elf_parser.is64bit());
 
-    std::uintmax_t virtual_address = elf_parser.entryPoint();
+    std::vector<std::uintmax_t> address_queue = { elf_parser.entryPoint() };
+    std::vector<std::uintmax_t> function_list;
 
-    for (int i = 0; i < 10; i++) {
-      std::array<std::uint8_t, 32> buffer;
-      elf_parser.read(virtual_address, buffer.data(), buffer.size());
+    while (!address_queue.empty())
+    {
+      std::uintmax_t virtual_address = address_queue.back();
+      address_queue.pop_back();
 
-      auto capstone_instr = disassembler.Disassemble(virtual_address, buffer.data(), buffer.size());
+      function_list.push_back(virtual_address);
 
-      std::cout << std::setfill('0') << std::setw(16) << virtual_address << "  ";
-      std::cout << std::setfill(' ') << std::setw(10) << capstone_instr->mnemonic << " ";
-      std::cout << std::setfill(' ') << std::setw(32) << capstone_instr->op_str << "    ";
-      std::cout << disassembler.SemanticFunctionName(capstone_instr) << std::endl;
+      std::cout << "proc sub_" << std::hex << virtual_address << std::endl;
 
-      virtual_address += capstone_instr->size;
+      while (true) {
+        std::array<std::uint8_t, 32> buffer;
+        elf_parser.read(virtual_address, buffer.data(), buffer.size());
+
+        auto capstone_instr = disassembler.Disassemble(virtual_address, buffer.data(), buffer.size());
+        PrintCapstoneInstruction(capstone_instr, disassembler.SemanticFunctionName(capstone_instr));
+
+        virtual_address += capstone_instr->size;
+
+        if (capstone_instr->id == MIPS_INS_JAL) {
+          std::uintmax_t call_destination = static_cast<std::uintmax_t>(capstone_instr->detail->mips.operands->imm);
+
+          if (std::find(function_list.begin(), function_list.end(), call_destination) == function_list.end())
+            address_queue.push_back(call_destination);
+        }
+
+        else if (capstone_instr->id == MIPS_INS_JR)
+          break;
+      }
+
+      std::cout << "endproc\n\n";
     }
 
     return 0;
@@ -44,4 +69,11 @@ int main(int argc, char *argv[], char *envp[]) {
     std::cerr << "An exception has occurred and the program must terminate.\n===\n" << exception.what() << std::endl;
     return 1;
   }
+}
+
+void PrintCapstoneInstruction(const remill::CapstoneInstruction &capstone_instr, const std::string &semantic_function) noexcept {
+  std::cout << "  " << std::hex << std::setfill('0') << std::setw(16) << capstone_instr->address << "  ";
+  std::cout << std::setfill(' ') << std::setw(10) << capstone_instr->mnemonic << " ";
+  std::cout << std::setfill(' ') << std::setw(24) << capstone_instr->op_str << "    ";
+  std::cout << semantic_function << std::endl;
 }
