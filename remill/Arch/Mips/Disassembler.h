@@ -34,7 +34,6 @@ public:
   /// decodes exactly one instruction from the specified buffer.
   bool Decode(const std::unique_ptr<Instruction> &remill_instr, uint64_t address, const std::string &instr_bytes) const noexcept;
 
-private:
   /// Disassembles the specified buffer trying to return exactly one opcode.
   CapstoneInstruction Disassemble(std::uint64_t address, const std::uint8_t *buffer, std::size_t buffer_size) const noexcept;
 
