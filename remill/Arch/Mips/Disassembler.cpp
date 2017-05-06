@@ -62,6 +62,7 @@ std::string MipsDisassembler::SemanticFunctionName(const CapstoneInstruction &ca
   runtime_function_name << capstone_instr->mnemonic;
 
   const cs_mips &details = capstone_instr->detail->mips;
+  const char *address_size = (d->capstone_disasm_mode == CS_MODE_32 ? "32" : "64");
 
   for (uint8_t i = 0; i < details.op_count; i++) {
     switch (details.operands[i].type) {
@@ -69,19 +70,17 @@ std::string MipsDisassembler::SemanticFunctionName(const CapstoneInstruction &ca
         break;
 
       case MIPS_OP_REG: {
-        runtime_function_name << "_Reg";
-        runtime_function_name << (d->capstone_disasm_mode == CS_MODE_32 ? "32" : "64");
+        runtime_function_name << "_R" << address_size;
         break;
       }
 
       case MIPS_OP_IMM: {
-        runtime_function_name << "_Imm";
+        runtime_function_name << "_I";
         break;
       }
 
       case MIPS_OP_MEM: {
-        runtime_function_name << "_Mem";
-        runtime_function_name << (d->capstone_disasm_mode == CS_MODE_32 ? "32" : "64");
+        runtime_function_name << "_M" << address_size;
         break;
       }
     }
@@ -103,9 +102,6 @@ bool MipsDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remill::
   remill_instr->next_pc = remill_instr->pc + capstone_instr->size;
   remill_instr->operand_size = cpu_word_size;
   remill_instr->category = InstructionCategory(capstone_instr);
-  remill_instr->operands.clear();
-
-  /// \todo currently not used
   remill_instr->branch_taken_pc = 0;
   remill_instr->branch_not_taken_pc = 0;
   remill_instr->is_atomic_read_modify_write = false;
@@ -113,6 +109,8 @@ bool MipsDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remill::
   //
   // convert the operands
   //
+
+  remill_instr->operands.clear();
 
   const cs_mips &instruction_details = capstone_instr->detail->mips;
   for (std::uint8_t operand_index = 0; operand_index < instruction_details.op_count; operand_index++) {
@@ -146,7 +144,6 @@ bool MipsDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remill::
         remill_operand.type = Operand::kTypeAddress;
         remill_operand.size = cpu_word_size;
 
-        /// \todo this is a hack; some instructions will not work
         if (operand_index == 0)
           remill_operand.action = Operand::kActionRead;
         else
@@ -558,7 +555,7 @@ Instruction::Category MipsDisassembler::InstructionCategory(const CapstoneInstru
 
       /*
         i couldn't find these opcodes in the manual; some of them can probably traced to
-        known instructions with variable (i.e.e: .fmt notation) encoding
+        known instructions with variable encoding (i.e.: .fmt notation)
       */
 
       case MIPS_INS_ABSQ_S:
