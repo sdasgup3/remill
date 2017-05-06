@@ -9,7 +9,7 @@
 #include <remill/Arch/Instruction.h>
 #include <remill/Arch/Mips/Disassembler.h>
 
-void PrintCapstoneInstruction(const remill::CapstoneInstruction &capstone_instr, const std::string &semantic_function) noexcept;
+void PrintCapstoneInstruction(std::size_t address_size, const remill::CapstoneInstruction &capstone_instr, const std::string &semantic_function) noexcept;
 
 int main(int argc, char *argv[], char *envp[]) {
   static_cast<void>(envp);
@@ -31,6 +31,7 @@ int main(int argc, char *argv[], char *envp[]) {
 
     std::vector<std::uintmax_t> address_queue = { elf_parser.entryPoint() };
     std::vector<std::uintmax_t> function_list;
+    std::size_t address_size = elf_parser.is64bit() ? 8 : 4;
 
     while (!address_queue.empty())
     {
@@ -46,7 +47,7 @@ int main(int argc, char *argv[], char *envp[]) {
         elf_parser.read(virtual_address, buffer.data(), buffer.size());
 
         auto capstone_instr = disassembler.Disassemble(virtual_address, buffer.data(), buffer.size());
-        PrintCapstoneInstruction(capstone_instr, disassembler.SemanticFunctionName(capstone_instr));
+        PrintCapstoneInstruction(address_size, capstone_instr, disassembler.SemanticFunctionName(capstone_instr));
 
         virtual_address += capstone_instr->size;
 
@@ -71,8 +72,13 @@ int main(int argc, char *argv[], char *envp[]) {
   }
 }
 
-void PrintCapstoneInstruction(const remill::CapstoneInstruction &capstone_instr, const std::string &semantic_function) noexcept {
-  std::cout << "  " << std::hex << std::setfill('0') << std::setw(16) << capstone_instr->address << "  ";
+void PrintCapstoneInstruction(std::size_t address_size, const remill::CapstoneInstruction &capstone_instr, const std::string &semantic_function) noexcept {
+  std::cout << "  " << std::hex << std::setfill('0') << std::setw(address_size * 2) << capstone_instr->address << "  ";
+
+  for (std::uint16_t i = 0; i < capstone_instr->size; i++)
+    std::cout << std::setfill('0') << std::setw(2) << std::hex << static_cast<int>(capstone_instr->bytes[i]);
+  std::cout << "  ";
+
   std::cout << std::setfill(' ') << std::setw(10) << capstone_instr->mnemonic << " ";
   std::cout << std::setfill(' ') << std::setw(24) << capstone_instr->op_str << "    ";
   std::cout << semantic_function << std::endl;
