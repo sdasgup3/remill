@@ -1,6 +1,7 @@
 #include "Disassembler.h"
 
 #include <sstream>
+#include <algorithm>
 
 #include <glog/logging.h>
 #include <remill/Arch/Name.h>
@@ -58,8 +59,12 @@ CapstoneInstruction MipsDisassembler::Disassemble(std::uint64_t address, const s
 }
 
 std::string MipsDisassembler::SemanticFunctionName(const CapstoneInstruction &capstone_instr) const noexcept {
+  /// \todo build a table for this
+  std::string mnemonic = capstone_instr->mnemonic;
+  std::transform(mnemonic.begin(), mnemonic.end(), mnemonic.begin(), ::toupper);
+
   std::stringstream runtime_function_name;
-  runtime_function_name << capstone_instr->mnemonic;
+  runtime_function_name << mnemonic;
 
   const cs_mips &details = capstone_instr->detail->mips;
   const char *address_size = (d->capstone_disasm_mode == CS_MODE_32 ? "32" : "64");
