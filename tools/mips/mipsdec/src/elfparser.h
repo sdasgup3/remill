@@ -5,6 +5,8 @@
 #include <memory>
 #include <cstdint>
 
+#include <gelf.h>
+
 class ELFParser final {
   ELFParser() = delete;
   ELFParser &operator=(const ELFParser &other) = delete;
@@ -19,6 +21,7 @@ public:
 
   bool is64bit() const noexcept;
   bool littleEndian() const noexcept;
+  std::uint16_t architecture() const noexcept;
   std::uintmax_t entryPoint() const noexcept;
 
   void read(std::uint8_t *buffer, std::size_t size) const;
