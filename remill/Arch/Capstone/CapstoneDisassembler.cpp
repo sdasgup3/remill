@@ -104,7 +104,7 @@ std::string CapstoneDisassembler::SemanticFunctionName(const CapstoneInstruction
       }
 
       case Operand::kTypeRegister: {
-        runtime_function_name << "_R" << operand.reg.size;
+        runtime_function_name << "_R" << (operand.reg.size * 8);
         break;
       }
 
@@ -114,7 +114,7 @@ std::string CapstoneDisassembler::SemanticFunctionName(const CapstoneInstruction
       }
 
       case Operand::kTypeAddress: {
-        runtime_function_name << "_M" << operand.addr.address_size;
+        runtime_function_name << "_M" << (operand.addr.address_size * 8);
         break;
       }
     }
