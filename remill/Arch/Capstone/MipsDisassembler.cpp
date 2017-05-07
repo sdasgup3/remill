@@ -1,123 +1,46 @@
-#include "Disassembler.h"
-
-#include <sstream>
-#include <algorithm>
-
-#include <glog/logging.h>
-#include <remill/Arch/Name.h>
+#include "MipsDisassembler.h"
 
 namespace remill {
 
-void CapstoneInstructionDeleter(cs_insn *instruction) noexcept {
-  if (instruction != nullptr)
-    cs_free(instruction, 1);
-}
-
 struct MipsDisassembler::PrivateData final {
-  csh capstone;
-  cs_mode capstone_disasm_mode;
+  std::size_t address_size;
 };
 
-MipsDisassembler::MipsDisassembler(bool mips64) : d(new PrivateData) {
-  d->capstone_disasm_mode = mips64 ? CS_MODE_64 : CS_MODE_32;
-
-  CHECK(cs_open(CS_ARCH_MIPS, d->capstone_disasm_mode, &d->capstone) == CS_ERR_OK)
-      << "The MIPS module has failed to initialize the Capstone library";
-
-  cs_option(d->capstone, CS_OPT_DETAIL, CS_OPT_ON);
+MipsDisassembler::MipsDisassembler(bool is_64_bits) : CapstoneDisassembler(CS_ARCH_MIPS, is_64_bits ? CS_MODE_MIPS64 : CS_MODE_MIPS32),
+                                                      d(new PrivateData) {
+  d->address_size = (is_64_bits ? 64 : 32);
 }
 
 MipsDisassembler::~MipsDisassembler() {
-  cs_close(&d->capstone);
 }
 
-std::string MipsDisassembler::RegisterName(unsigned int id) const noexcept {
+std::string MipsDisassembler::RegisterName(std::uintmax_t id) const noexcept {
   return "";
 }
 
-unsigned int MipsDisassembler::RegisterId(const std::string &name) const noexcept {
-  return 0;
+bool MipsDisassembler::PostDisasmHook(const CapstoneInstructionPtr &capstone_instr) const noexcept {
+  return true;
 }
 
-bool MipsDisassembler::Decode(const std::unique_ptr<Instruction> &remill_instr, uint64_t address, const std::string &instr_bytes) const noexcept {
-  CapstoneInstruction capstone_instr = Disassemble(address, reinterpret_cast<const std::uint8_t *>(instr_bytes.data()), instr_bytes.size());
-  if (!capstone_instr)
-    return false;
+bool MipsDisassembler::PostDecodeHook(const std::unique_ptr<Instruction> &remill_instr, const CapstoneInstructionPtr &capstone_instr) const noexcept {
+  return true;
+}
 
-  if (!ConvertToRemillInstruction(remill_instr, capstone_instr))
-    return false;
+bool MipsDisassembler::RegisterName(std::string &name, std::uintmax_t id) const noexcept {
+  name = RegisterName(id);
+  if (name.empty())
+      return false;
 
   return true;
 }
 
-CapstoneInstruction MipsDisassembler::Disassemble(std::uint64_t address, const std::uint8_t *buffer, std::size_t buffer_size) const noexcept {
-  cs_insn *temp_instr;
-  if (cs_disasm(d->capstone, buffer, buffer_size, address, 1, &temp_instr) != 1)
-    return nullptr;
-
-  return CapstoneInstruction(temp_instr, CapstoneInstructionDeleter);
+bool MipsDisassembler::RegisterSize(std::string &name) const noexcept {
+  return true;
 }
 
-std::string MipsDisassembler::SemanticFunctionName(const CapstoneInstruction &capstone_instr) const noexcept {
-  /// \todo build a table for this
-  std::string mnemonic = capstone_instr->mnemonic;
-  std::transform(mnemonic.begin(), mnemonic.end(), mnemonic.begin(), ::toupper);
-
-  std::stringstream runtime_function_name;
-  runtime_function_name << mnemonic;
-
-  const cs_mips &details = capstone_instr->detail->mips;
-  const char *address_size = (d->capstone_disasm_mode == CS_MODE_32 ? "32" : "64");
-
-  for (uint8_t i = 0; i < details.op_count; i++) {
-    switch (details.operands[i].type) {
-      case MIPS_OP_INVALID:
-        break;
-
-      case MIPS_OP_REG: {
-        runtime_function_name << "_R" << address_size;
-        break;
-      }
-
-      case MIPS_OP_IMM: {
-        runtime_function_name << "_I";
-        break;
-      }
-
-      case MIPS_OP_MEM: {
-        runtime_function_name << "_M" << address_size;
-        break;
-      }
-    }
-  }
-
-  return runtime_function_name.str();
-}
-
-bool MipsDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remill::Instruction> &remill_instr, const CapstoneInstruction &capstone_instr) const noexcept {
-  std::size_t cpu_word_size = (d->capstone_disasm_mode == CS_MODE_32) ? 4 : 8;
-
-  std::stringstream disassembly;
-  disassembly << capstone_instr->mnemonic << " " << capstone_instr->op_str;
-  remill_instr->disassembly = disassembly.str();
-
-  remill_instr->function = SemanticFunctionName(capstone_instr);
-  remill_instr->arch_name = (d->capstone_disasm_mode == CS_MODE_32) ? kArchMips32 : kArchMips64;
-  remill_instr->pc = capstone_instr->address;
-  remill_instr->next_pc = remill_instr->pc + capstone_instr->size;
-  remill_instr->operand_size = cpu_word_size;
-  remill_instr->category = InstructionCategory(capstone_instr);
-  remill_instr->branch_taken_pc = 0;
-  remill_instr->branch_not_taken_pc = 0;
-  remill_instr->is_atomic_read_modify_write = false;
-
-  //
-  // convert the operands
-  //
-
-  remill_instr->operands.clear();
-
+bool MipsDisassembler::InstructionOperands(std::vector<Operand> &operand_list, const CapstoneInstructionPtr &capstone_instr) const noexcept {
   const cs_mips &instruction_details = capstone_instr->detail->mips;
+
   for (std::uint8_t operand_index = 0; operand_index < instruction_details.op_count; operand_index++) {
     const auto &instruction_operand = instruction_details.operands[operand_index];
 
@@ -129,7 +52,7 @@ bool MipsDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remill::
     // registers
     if (instruction_operand.type == MIPS_OP_REG) {
       remill_operand.type = Operand::kTypeRegister;
-      remill_operand.size = cpu_word_size;
+      remill_operand.size = AddressSize() / 8;
       remill_operand.action = RegisterAccessType(instruction_operand.reg, capstone_instr);
 
       remill_operand.reg.name = RegisterName(instruction_operand.reg);
@@ -138,7 +61,7 @@ bool MipsDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remill::
     // immediate values
     } else if (instruction_operand.type == MIPS_OP_IMM) {
       remill_operand.type = Operand::kTypeImmediate;
-      remill_operand.size = cpu_word_size;
+      remill_operand.size = AddressSize() / 8;
       remill_operand.action = Operand::kActionRead;
 
       remill_operand.imm.is_signed = true;
@@ -147,18 +70,18 @@ bool MipsDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remill::
     // memory addresses
     } else {
         remill_operand.type = Operand::kTypeAddress;
-        remill_operand.size = cpu_word_size;
+        remill_operand.size = AddressSize() / 8;
 
         if (operand_index == 0)
           remill_operand.action = Operand::kActionRead;
         else
           remill_operand.action = Operand::kActionWrite;
 
-        remill_operand.addr.address_size = cpu_word_size;
+        remill_operand.addr.address_size = AddressSize() / 8;
 
         if (instruction_operand.mem.base != MIPS_REG_INVALID) {
           remill_operand.addr.base_reg.name = RegisterName(instruction_operand.mem.base);
-          remill_operand.addr.base_reg.size = cpu_word_size;
+          remill_operand.addr.base_reg.size = AddressSize() / 8;
         }
 
         remill_operand.addr.displacement = instruction_operand.mem.disp;
@@ -166,13 +89,17 @@ bool MipsDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remill::
         remill_operand.addr.kind = (remill_operand.action == Operand::kActionRead ? Operand::Address::kMemoryRead : Operand::Address::kMemoryWrite);
     }
 
-    remill_instr->operands.push_back(remill_operand);
+    operand_list.push_back(remill_operand);
   }
 
   return true;
 }
 
-Instruction::Category MipsDisassembler::InstructionCategory(const CapstoneInstruction &capstone_instr) const noexcept {
+std::size_t MipsDisassembler::AddressSize() const noexcept {
+  return d->address_size;
+}
+
+Instruction::Category MipsDisassembler::InstructionCategory(const CapstoneInstructionPtr &capstone_instr) const noexcept {
     /*
       The following opcodes were found in the MIPS architecture manual but were not
       inside the Capstone definitions; some of them have probably combined names (i.e.: fmt ones)
@@ -880,26 +807,4 @@ Instruction::Category MipsDisassembler::InstructionCategory(const CapstoneInstru
     return category;
 }
 
-Operand::Action MipsDisassembler::RegisterAccessType(unsigned int register_id, const CapstoneInstruction &capstone_instr) const noexcept {
-  Operand::Action action_type = Operand::kActionInvalid;
-
-  for (uint8_t i = 0; i < capstone_instr->detail->regs_read_count; i++) {
-  if (capstone_instr->detail->regs_read[i] != register_id)
-    continue;
-
-   action_type = Operand::kActionRead;
-   break;
-  }
-
-  for (uint8_t i = 0; i < capstone_instr->detail->regs_write_count; i++) {
-  if (capstone_instr->detail->regs_write[i] != register_id)
-    continue;
-
-   action_type = Operand::kActionWrite;
-   break;
-  }
-
-  return action_type;
-}
-
-}  // remill namespace
+}  //  namespace remill

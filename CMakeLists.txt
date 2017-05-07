@@ -156,8 +156,10 @@ list(APPEND PROJECT_DEFINITIONS "BUILD_SEMANTICS_DIR=\"${CMAKE_CURRENT_BINARY_DI
 
 add_library(${PROJECT_NAME} STATIC
     remill/Arch/Mips/Arch.cpp
-    remill/Arch/Mips/Disassembler.h
-    remill/Arch/Mips/Disassembler.cpp
+
+    remill/Arch/Capstone/CapstoneDisassembler.cpp
+    remill/Arch/Capstone/MipsDisassembler.cpp
+    remill/Arch/Capstone/ARMDisassembler.cpp
 
     remill/Arch/X86/Arch.cpp
     remill/Arch/Arch.cpp
