@@ -34,7 +34,7 @@ bool ARMDisassembler::RegisterName(std::string &name, std::uintmax_t id) const n
   return true;
 }
 
-bool ARMDisassembler::RegisterSize(std::string &name) const noexcept {
+bool ARMDisassembler::RegisterSize(std::size_t &size, const std::string &name) const noexcept {
   return false;
 }
 

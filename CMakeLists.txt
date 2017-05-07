@@ -201,7 +201,7 @@ add_subdirectory(remill/Arch/X86/Runtime)
 add_subdirectory(remill/Arch/Mips/Runtime)
 
 # mips tools
-add_subdirectory(tools/mips/mipsdec)
+add_subdirectory(tools/testdec)
 
 # mcsema needs to be manually cloned into this repo.
 if (EXISTS ${CMAKE_SOURCE_DIR}/tools/mcsema)

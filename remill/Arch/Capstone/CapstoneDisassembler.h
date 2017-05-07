@@ -85,7 +85,7 @@ public:
     \return True to continue processing the current instruction, or false abort it.
   */
 
-  virtual bool RegisterSize(std::string &name) const noexcept = 0;
+  virtual bool RegisterSize(std::size_t &size, const std::string &name) const noexcept = 0;
 
   /**
     This method is called when the disassembler needs the opcode operands
