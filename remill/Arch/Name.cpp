@@ -69,6 +69,10 @@ std::string GetArchName(ArchName arch_name) {
       return "mips32";
     case kArchMips64:
       return "mips64";
+    case kArchARM:
+      return "arm";
+    case kArchARM64:
+      return "arm64";
   }
 }
 

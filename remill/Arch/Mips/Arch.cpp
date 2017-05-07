@@ -31,8 +31,7 @@
 #include <remill/Arch/Mips/Runtime/State.h>
 #include <remill/BC/Version.h>
 #include <remill/OS/OS.h>
-
-#include "Disassembler.h"
+#include <remill/Arch/Capstone/MipsDisassembler.h>
 
 namespace remill {
 
@@ -40,7 +39,7 @@ struct MipsArch::PrivateData final {
   OSName operating_system;
   ArchName architecture;
 
-  std::unique_ptr<MipsDisassembler> disassembler;
+  std::unique_ptr<CapstoneDisassembler> disassembler;
 };
 
 // TODO(pag): We pretend that these are singletons, but they aren't really!

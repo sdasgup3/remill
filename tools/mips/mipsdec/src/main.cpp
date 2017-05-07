@@ -6,7 +6,7 @@
 #include <vector>
 
 #include <remill/Arch/Instruction.h>
-#include <remill/Arch/Mips/Disassembler.h>
+#include <remill/Arch/Capstone/MipsDisassembler.h>
 
 #include <llvm/Support/SourceMgr.h>
 #include <llvm/IR/LLVMContext.h>
@@ -14,7 +14,7 @@
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Support/Error.h>
 
-void PrintCapstoneInstruction(std::size_t address_size, const remill::CapstoneInstruction &capstone_instr, const std::string &semantic_function) noexcept;
+void PrintCapstoneInstruction(std::size_t address_size, const remill::CapstoneInstructionPtr &capstone_instr, const std::string &semantic_function) noexcept;
 std::unique_ptr<llvm::Module> LoadLLVMBitcode(const std::string &path, llvm::LLVMContext &llvm_context);
 bool IsFunctionSemanticsImplemented(const std::string &semantic_function, const std::unique_ptr<llvm::Module> &llvm_module) noexcept;
 
@@ -40,6 +40,19 @@ int main(int argc, char *argv[], char *envp[]) {
 
   try {
     ELFParser elf_parser(image_path);
+    switch (elf_parser.architecture()) {
+      case EM_ARM:
+      case EM_AARCH64:
+        throw std::runtime_error("ARM support is not yet implemented");
+
+      case EM_MIPS:
+      case EM_MIPS_RS3_LE:
+      case EM_MIPS_X:
+        break;
+
+      default:
+        throw std::runtime_error("Unsupported architecture!");
+    }
 
     llvm::LLVMContext llvm_context;
     auto llvm_module = LoadLLVMBitcode(semantics_path, llvm_context);
@@ -64,14 +77,19 @@ int main(int argc, char *argv[], char *envp[]) {
         elf_parser.read(virtual_address, buffer.data(), buffer.size());
 
         auto capstone_instr = disassembler.Disassemble(virtual_address, buffer.data(), buffer.size());
-        std::string semantic_function = disassembler.SemanticFunctionName(capstone_instr);
+
+        std::vector<remill::Operand> operand_list;
+        if (!disassembler.InstructionOperands(operand_list, capstone_instr))
+          throw std::runtime_error("Failed to convert the instruction operands");
+
+        std::string semantic_function = disassembler.SemanticFunctionName(capstone_instr, operand_list);
 
         if (IsFunctionSemanticsImplemented(semantic_function, llvm_module))
             std::cout << "  ";
         else
             std::cout << "x ";
 
-        PrintCapstoneInstruction(address_size, capstone_instr, disassembler.SemanticFunctionName(capstone_instr));
+        PrintCapstoneInstruction(address_size, capstone_instr, semantic_function);
         virtual_address += capstone_instr->size;
 
         if (capstone_instr->id == MIPS_INS_JAL) {
@@ -95,7 +113,7 @@ int main(int argc, char *argv[], char *envp[]) {
   }
 }
 
-void PrintCapstoneInstruction(std::size_t address_size, const remill::CapstoneInstruction &capstone_instr, const std::string &semantic_function) noexcept {
+void PrintCapstoneInstruction(std::size_t address_size, const remill::CapstoneInstructionPtr &capstone_instr, const std::string &semantic_function) noexcept {
   std::cout << "    " << std::hex << std::setfill('0') << std::setw(static_cast<int>(address_size * 2)) << capstone_instr->address << "  ";
 
   for (std::uint16_t i = 0; i < capstone_instr->size; i++)

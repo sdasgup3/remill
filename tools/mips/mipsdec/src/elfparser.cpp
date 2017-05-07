@@ -1,6 +1,5 @@
 #include "elfparser.h"
 
-#include <gelf.h>
 #include <fcntl.h>
 #include <unistd.h>
 
@@ -55,21 +54,12 @@ ELFParser::ELFParser(const std::string &image_path) : d(new PrivateData) {
   // attempt to parse the header
   parseHeader();
 
-  switch (d->image_header.e_machine) {
-    case EM_MIPS: {
-      d->little_endian = false;
-      break;
-    }
-
-    case EM_MIPS_RS3_LE:
-    case EM_MIPS_X: {
-      d->little_endian = true;
-      break;
-    }
-
-    default:
-      throw std::runtime_error("ELFParser: The selected image does not appear to be a MIPS executable!");
-  }
+  if (d->image_header.e_ident[EI_DATA] == ELFDATA2LSB)
+    d->little_endian = true;
+  else if (d->image_header.e_ident[EI_DATA] == ELFDATA2MSB)
+    d->little_endian = false;
+  else
+    throw std::runtime_error("Unrecognized endianness specified");
 
   parseSectionList();
   d->virtual_address = 0;
@@ -84,6 +74,10 @@ bool ELFParser::is64bit() const noexcept {
 
 bool ELFParser::littleEndian() const noexcept {
   return d->little_endian;
+}
+
+std::uint16_t ELFParser::architecture() const noexcept {
+  return d->image_header.e_machine;
 }
 
 std::uintmax_t ELFParser::entryPoint() const noexcept {
