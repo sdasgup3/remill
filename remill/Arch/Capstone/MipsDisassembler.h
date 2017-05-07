@@ -29,7 +29,7 @@ protected:
 
 public:
   virtual bool RegisterName(std::string &name, std::uintmax_t id) const noexcept;
-  virtual bool RegisterSize(std::string &name) const noexcept;
+  virtual bool RegisterSize(std::size_t &size, const std::string &name) const noexcept;
   virtual bool InstructionOperands(std::vector<Operand> &operand_list, const CapstoneInstructionPtr &capstone_instr) const noexcept;
   virtual std::size_t AddressSize() const noexcept;
   virtual Instruction::Category InstructionCategory(const CapstoneInstructionPtr &capstone_instr) const noexcept;

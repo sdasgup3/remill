@@ -34,7 +34,8 @@ bool MipsDisassembler::RegisterName(std::string &name, std::uintmax_t id) const 
   return true;
 }
 
-bool MipsDisassembler::RegisterSize(std::string &name) const noexcept {
+bool MipsDisassembler::RegisterSize(std::size_t &size, const std::string &name) const noexcept {
+  size = d->address_size;
   return true;
 }
 
@@ -352,14 +353,30 @@ Instruction::Category MipsDisassembler::InstructionCategory(const CapstoneInstru
       case MIPS_INS_ERET:
       case MIPS_INS_EXT:
       case MIPS_INS_INS:
-      case MIPS_INS_J:
-      case MIPS_INS_JAL:
+      case MIPS_INS_J: {
+        category = Instruction::kCategoryNormal;
+        break;
+      }
+
+      case MIPS_INS_JAL: {
+        category = Instruction::kCategoryDirectFunctionCall;
+        break;
+      }
+
       case MIPS_INS_JALR:
       case MIPS_INS_JALR_HB:
       case MIPS_INS_JALX:
       case MIPS_INS_JIALC:
-      case MIPS_INS_JIC:
-      case MIPS_INS_JR:
+      case MIPS_INS_JIC: {
+        category = Instruction::kCategoryNormal;
+        break;
+      }
+
+      case MIPS_INS_JR: {
+        category = Instruction::kCategoryFunctionReturn;
+        break;
+      }
+
       case MIPS_INS_JR_HB:
       case MIPS_INS_LB:
       case MIPS_INS_LBU:

@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(mipsdec CXX)
+project(testdec CXX)
 
 #
 # compiler settings
@@ -9,8 +9,8 @@ project(mipsdec CXX)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 14)
 
-set(MIPSDEC_CXXWARNINGS "-pedantic -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlong-long -Wmissing-declarations -Wmissing-include-dirs -Wcomment -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-overflow=5 -Wswitch-default -Wundef -Werror -Wno-unused")
-set(MIPSDEC_CXXFLAGS "${GLOBAL_CXXWARNINGS} -fPIC -fvisibility=hidden")
+set(TESTDEC_CXXWARNINGS "-pedantic -Wall -Wextra -Wcast-align -Wcast-qual -Wctor-dtor-privacy -Wdisabled-optimization -Wformat=2 -Winit-self -Wlong-long -Wmissing-declarations -Wmissing-include-dirs -Wcomment -Wold-style-cast -Woverloaded-virtual -Wredundant-decls -Wshadow -Wsign-conversion -Wsign-promo -Wstrict-overflow=5 -Wswitch-default -Wundef -Werror -Wno-unused")
+set(TESTDEC_CXXFLAGS "${GLOBAL_CXXWARNINGS} -fPIC -fvisibility=hidden")
 
 # build type
 if (NOT CMAKE_BUILD_TYPE)
@@ -18,13 +18,13 @@ if (NOT CMAKE_BUILD_TYPE)
 endif ()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
-    set(MIPSDEC_CXXFLAGS "${MIPSDEC_CXXFLAGS} -gdwarf-2 -g3")
+    set(TESTDEC_CXXFLAGS "${TESTDEC_CXXFLAGS} -gdwarf-2 -g3")
 endif ()
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(MIPSDEC_CXXFLAGS "${MIPSDEC_CXXFLAGS} -O0")
+    set(TESTDEC_CXXFLAGS "${TESTDEC_CXXFLAGS} -O0")
 else ()
-    set(MIPSDEC_CXXFLAGS "${MIPSDEC_CXXFLAGS} -O3")
+    set(TESTDEC_CXXFLAGS "${TESTDEC_CXXFLAGS} -O3")
 endif ()
 
 #
@@ -41,7 +41,7 @@ else ()
 endif ()
 
 # remill
-set(MIPSDEC_SOURCEFILES
+set(TESTDEC_SOURCEFILES
 
     ${CMAKE_SOURCE_DIR}/remill/Arch/Capstone/CapstoneDisassembler.cpp
     ${CMAKE_SOURCE_DIR}/remill/Arch/Capstone/MipsDisassembler.cpp
@@ -49,19 +49,19 @@ set(MIPSDEC_SOURCEFILES
     ${CMAKE_SOURCE_DIR}/remill/Arch/Instruction.cpp
 )
 
-set(MIPSDEC_INCLUDEDIRECTORIES
+set(TESTDEC_INCLUDEDIRECTORIES
     ${CMAKE_SOURCE_DIR}
 )
 
 # google log module
 find_package(glog REQUIRED)
-list(APPEND MIPSDEC_LIBRARIES glog::glog)
+list(APPEND TESTDEC_LIBRARIES glog::glog)
 
 # todo: capstone
-list(APPEND MIPSDEC_LIBRARIES capstone)
+list(APPEND TESTDEC_LIBRARIES capstone)
 
 # todo: libelf/gelf
-list(APPEND MIPSDEC_LIBRARIES elf)
+list(APPEND TESTDEC_LIBRARIES elf)
 
 # llvm
 if (DEFINED ENV{LLVM_INSTALL_PREFIX})
@@ -78,17 +78,17 @@ endif ()
 find_package(LLVM REQUIRED CONFIG HINTS ${FINDPACKAGE_LLVM_HINTS})
 
 set(LLVM_LIBRARIES LLVMCore LLVMSupport LLVMIRReader)
-list(APPEND MIPSDEC_LIBRARIES ${LLVM_LIBRARIES})
+list(APPEND TESTDEC_LIBRARIES ${LLVM_LIBRARIES})
 
-list(APPEND MIPSDEC_DEFINITIONS ${LLVM_DEFINITIONS})
-list(APPEND MIPSDEC_INCLUDEDIRECTORIES ${LLVM_INCLUDE_DIRS})
+list(APPEND TESTDEC_DEFINITIONS ${LLVM_DEFINITIONS})
+list(APPEND TESTDEC_INCLUDEDIRECTORIES ${LLVM_INCLUDE_DIRS})
 
 #
 # target settings
 #
 
-set(MIPSDEC_SOURCEFILES
-    ${MIPSDEC_SOURCEFILES}
+set(TESTDEC_SOURCEFILES
+    ${TESTDEC_SOURCEFILES}
 
     src/main.cpp
 
@@ -96,12 +96,12 @@ set(MIPSDEC_SOURCEFILES
     src/elfparser.cpp
 )
 
-add_executable(${PROJECT_NAME} ${MIPSDEC_SOURCEFILES})
+add_executable(${PROJECT_NAME} ${TESTDEC_SOURCEFILES})
 
-set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS ${MIPSDEC_CXXFLAGS})
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${MIPSDEC_INCLUDEDIRECTORIES})
-target_compile_definitions(${PROJECT_NAME} PRIVATE ${MIPSDEC_DEFINITIONS})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${MIPSDEC_LIBRARIES})
+set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS ${TESTDEC_CXXFLAGS})
+target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${TESTDEC_INCLUDEDIRECTORIES})
+target_compile_definitions(${PROJECT_NAME} PRIVATE ${TESTDEC_DEFINITIONS})
+target_link_libraries(${PROJECT_NAME} PRIVATE ${TESTDEC_LIBRARIES})
 
 set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bin")
 install(TARGETS ${PROJECT_NAME} DESTINATION /usr/bin)
