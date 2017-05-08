@@ -56,7 +56,7 @@ static_assert(sizeof(uint64_t) == sizeof(Reg), "Invalid packing of `Reg`.");
 static_assert(0 == __builtin_offsetof(Reg, dword),
               "Invalid packing of `Reg::dword`.");
 IF_64BIT(static_assert(0 == __builtin_offsetof(Reg, qword),
-              "Invalid packing of `Reg::qword`.");)
+                       "Invalid packing of `Reg::qword`.");)
 
 // Named the same way as the 64-bit version to keep names the same
 // across architectures. All registers are here, even the 64-bit ones. The
@@ -64,7 +64,8 @@ IF_64BIT(static_assert(0 == __builtin_offsetof(Reg, qword),
 // not be referenced by named variables in the `__remill_basic_block`
 // function.
 
-/// \todo this is completely broken, i know; regs should be split in the right categories
+/// \todo this is completely broken, i know; regs should be split in the right
+/// categories
 /// \todo mips32 and mips64 register are all mixed up...
 struct alignas(8) GPR final {
   // Prevents LLVM from casting a `GPR` into an `i64` to access `rax`.
