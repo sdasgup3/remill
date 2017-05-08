@@ -17,8 +17,8 @@
 #include "remill/Arch/Runtime/Intrinsics.h"
 #include "remill/Arch/Runtime/Operators.h"
 
-#include "remill/Arch/Mips/Runtime/Operators.h"
 #include "remill/Arch/Mips/Runtime/State.h"
+#include "remill/Arch/Mips/Runtime/Operators.h"
 #include "remill/Arch/Mips/Runtime/Types.h"
 
 #include <fenv.h>
