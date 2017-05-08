@@ -50,6 +50,7 @@ static unsigned AddressSize(ArchName arch_name) {
     case kArchAMD64_AVX512:
     case kArchMips64:
     case kArchARM64:
+    case kArchARM64_BE:
       return 64;
   }
 }
@@ -74,6 +75,7 @@ const Arch *Arch::Get(OSName os_name_, ArchName arch_name_) {
     case kArchInvalid:
     case kArchARM:
     case kArchARM64:
+    case kArchARM64_BE:
       LOG(FATAL) << "Unrecognized architecture.";
       return nullptr;
 

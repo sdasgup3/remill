@@ -149,7 +149,10 @@ std::string Instruction::Serialize(void) const {
       ss << "ARM_";
       break;
     case kArchARM64:
-      ss << "ARM64_";
+      ss << "AARCH64_";
+      break;
+    case kArchARM64_BE:
+      ss << "AARCH64_BE_";
       break;
   }
   ss << "INSTR 0x" << std::hex << pc << " "

@@ -727,6 +727,7 @@ void X86Arch::PrepareModule(llvm::Module *mod) const {
         case kArchMips64:
         case kArchARM:
         case kArchARM64:
+        case kArchARM64_BE:
           LOG(FATAL)
               << "Cannot convert module for an unrecognized architecture.";
             break;
@@ -753,6 +754,7 @@ void X86Arch::PrepareModule(llvm::Module *mod) const {
         case kArchMips64:
         case kArchARM:
         case kArchARM64:
+        case kArchARM64_BE:
           LOG(FATAL)
               << "Cannot convert module for an unrecognized architecture.";
           break;

@@ -32,14 +32,6 @@ class SyncHyperCall {
     kMipsEmulateInstruction,
 
     kAssertPrivileged,
-
-    kDebugBreakpoint,
-
-    //
-    // mips exceptions
-    //
-
-    kIntegerOverflow
   };
 } __attribute__((packed));
 

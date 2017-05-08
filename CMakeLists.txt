@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(remill LANGUAGES)
+project(remill)
 cmake_minimum_required (VERSION 3.2)
 
 include(CTest)
+
+set(REMILL_SOURCE_DIR "${PROJECT_SOURCE_DIR}")
 
 #
 # compiler selection
@@ -93,7 +95,7 @@ if (NOT WIN32)
 endif ()
 
 # warnings and compiler settings
-set(PROJECT_CXXWARNINGS "-Wall -Wextra -Wno-unused-parameter -Wno-c++98-compat -Wno-unreachable-code-return -Wno-nested-anon-types -Wno-extended-offsetof -Wno-gnu-anonymous-struct -Wno-gnu-designator -Wno-variadic-macros -Wno-gnu-zero-variadic-macro-arguments -Wno-gnu-statement-expression -Wno-return-type-c-linkage -Wno-c99-extensions -Wno-ignored-attributes -Wno-unused-local-typedef")
+set(PROJECT_CXXWARNINGS "-Wall -Wextra -Werror -pedantic -Wno-unused-parameter -Wno-c++98-compat -Wno-unreachable-code-return -Wno-nested-anon-types -Wno-extended-offsetof -Wno-gnu-anonymous-struct -Wno-gnu-designator -Wno-variadic-macros -Wno-gnu-zero-variadic-macro-arguments -Wno-gnu-statement-expression -Wno-return-type-c-linkage -Wno-c99-extensions -Wno-ignored-attributes -Wno-unused-local-typedef")
 set(PROJECT_CXXFLAGS "${PROJECT_CXXFLAGS} -Wno-unknown-warning-option ${PROJECT_CXXWARNINGS} -fPIC -fno-omit-frame-pointer -fvisibility-inlines-hidden -fno-exceptions -fno-asynchronous-unwind-tables -fno-rtti")
 
 # default build type
@@ -139,8 +141,10 @@ list(APPEND PROJECT_LIBRARIES glog::glog)
 find_package(gflags REQUIRED)
 list(APPEND PROJECT_LIBRARIES gflags)
 
-# todo: capstone
-list(APPEND PROJECT_LIBRARIES capstone)
+#capstone
+find_package(capstone REQUIRED)
+list(APPEND PROJECT_LIBRARIES ${CAPSTONE_LIBRARIES})
+list(APPEND PROJECT_INCLUDEDIRECTORIES ${CAPSTONE_INCLUDE_DIRS})
 
 #
 # target settings
@@ -196,7 +200,7 @@ add_subdirectory(remill/Arch/X86/Runtime)
 add_subdirectory(remill/Arch/Mips/Runtime)
 
 # mips tools
-add_subdirectory(tools/testdec)
+#add_subdirectory(tools/testdec)
 
 # mcsema needs to be manually cloned into this repo.
 if (EXISTS ${CMAKE_SOURCE_DIR}/tools/mcsema)
