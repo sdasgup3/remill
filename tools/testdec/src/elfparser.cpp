@@ -80,31 +80,37 @@ std::uintmax_t ELFParser::entryPoint() const noexcept {
 }
 
 void ELFParser::read(std::uint8_t *buf, std::size_t size) const {
-  while (size > 0) {
-    std::uintmax_t offset;
-    std::size_t available_bytes;
+  std::intmax_t file_handle =
+      reinterpret_cast<std::intmax_t>(d->file_stream.get());
 
-    if (!offsetFromVaddr(offset, available_bytes, d->vaddr)) {
+  while (size > 0) {
+    std::uintmax_t next_off;
+    std::size_t avail_bytes;
+
+    if (!offsetFromVaddr(next_off, avail_bytes, d->vaddr)) {
       std::memset(buf, 0, size);
       d->vaddr += size;
+      size = 0;
 
-      return;
+      break;
     }
 
-    std::intmax_t file_handle =
-        reinterpret_cast<std::intmax_t>(d->file_stream.get());
-    if (lseek(static_cast<int>(file_handle), static_cast<off_t>(offset),
-              SEEK_SET) == -1)
+    if (lseek(static_cast<int>(file_handle), static_cast<off_t>(next_off),
+              SEEK_SET) == -1) {
       throw std::runtime_error(
           "ELFParser: Failed to seek to the required offset");
+    }
 
-    std::size_t bytes_to_read = std::min(size, available_bytes);
-    if (::read(static_cast<int>(file_handle), buf, bytes_to_read) == -1)
+    std::size_t bytes_to_read = std::min(size, avail_bytes);
+    if (::read(static_cast<int>(file_handle), buf, bytes_to_read) == -1) {
       throw std::runtime_error(
           "ELFParser: Failed to read the executable image");
+    }
 
     size -= bytes_to_read;
     buf += bytes_to_read;
+
+    d->vaddr += bytes_to_read;
   }
 }
 
@@ -208,7 +214,7 @@ bool ELFParser::offsetFromVaddr(std::uintmax_t &off, std::size_t &avail_bytes,
   if (req_sect_header.sh_addr == 0) return false;
 
   off = req_sect_header.sh_offset + (vaddr - req_sect_header.sh_addr);
-  avail_bytes = req_sect_header.sh_size - off;
+  avail_bytes = req_sect_header.sh_size - (off - req_sect_header.sh_offset);
 
   return true;
 }

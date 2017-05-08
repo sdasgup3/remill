@@ -83,7 +83,7 @@ Instruction::Category ARMDisassembler::InstrCategory(
   if (d->address_size == 32) {
     auto instr_details = cap_instr->detail->arm;
 
-    if (cap_instr->id == ARM_INS_BL)
+    if (cap_instr->id == ARM_INS_BL || cap_instr->id == ARM_INS_BLX)
       return Instruction::kCategoryDirectFunctionCall;
 
     else if (cap_instr->id == ARM_INS_BX &&

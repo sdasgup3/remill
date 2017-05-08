@@ -45,7 +45,9 @@ int main(int argc, char *argv[], char *envp[]) {
 
   if (argc != 3) {
     std::cout << "This is a debugging/development tool for the "
-                 "CapstoneDisassembler module of remill.\n\n"
+                 "CapstoneDisassembler module of remill. It is "
+                 "best to use it with test executables compiled "
+                 "using -nostdlib\n\n"
                  "Usage:\n"
                  "\tmipsdec /path/to/executable /path/to/semantics.bc\n";
 
@@ -109,10 +111,10 @@ int main(int argc, char *argv[], char *envp[]) {
         auto capstone_instr =
             disasm->Disassemble(virtual_address, buffer.data(), buffer.size());
         if (!capstone_instr) {
-          std::stringstream error_message;
-          error_message << "Failed to disassemble the instruction at VA "
-                        << std::hex << virtual_address;
-          throw std::runtime_error(error_message.str());
+          std::cout
+              << "     ; Failed to disassemble the instruction at vaddr 0x"
+              << std::hex << virtual_address << std::endl;
+          break;
         }
 
         std::vector<remill::Operand> operand_list;
