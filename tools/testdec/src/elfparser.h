@@ -1,21 +1,21 @@
 #ifndef MIPSDEC_ELFPARSER_H
 #define MIPSDEC_ELFPARSER_H
 
-#include <string>
-#include <memory>
 #include <cstdint>
+#include <memory>
+#include <string>
 
 #include <gelf.h>
 
 class ELFParser final {
   ELFParser() = delete;
   ELFParser &operator=(const ELFParser &other) = delete;
-  ELFParser(const ELFParser& other) = delete;
+  ELFParser(const ELFParser &other) = delete;
 
   struct PrivateData;
   std::unique_ptr<PrivateData> d;
 
-public:
+ public:
   ELFParser(const std::string &image_path);
   ~ELFParser();
 
@@ -25,7 +25,8 @@ public:
   std::uintmax_t entryPoint() const noexcept;
 
   void read(std::uint8_t *buffer, std::size_t size) const;
-  void read(std::uintmax_t virtual_address, std::uint8_t *buffer, std::size_t size) const;
+  void read(std::uintmax_t virtual_address, std::uint8_t *buffer,
+            std::size_t size) const;
 
   void seek(std::uintmax_t virtual_address) const noexcept;
   std::uintmax_t tell() const noexcept;
@@ -40,11 +41,13 @@ public:
   std::int32_t i32() const;
   std::int64_t i64() const;
 
-private:
+ private:
   void parseHeader();
   void parseProgramHeaderTable();
   void parseSectionList();
-  bool offsetFromVirtualAddress(std::uintmax_t &offset, std::size_t &available_bytes, std::uintmax_t virtual_address) const noexcept;
+  bool offsetFromVirtualAddress(std::uintmax_t &offset,
+                                std::size_t &available_bytes,
+                                std::uintmax_t virtual_address) const noexcept;
 };
 
 #endif  // MIPSDEC_ELFPARSER_H

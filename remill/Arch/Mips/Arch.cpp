@@ -20,18 +20,18 @@
 #include <sstream>
 #include <string>
 
+#include <llvm/ADT/Triple.h>
 #include <llvm/IR/Attributes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
-#include <llvm/ADT/Triple.h>
 
+#include <remill/Arch/Capstone/MipsDisassembler.h>
 #include <remill/Arch/Instruction.h>
-#include <remill/Arch/Name.h>
 #include <remill/Arch/Mips/Arch.h>
 #include <remill/Arch/Mips/Runtime/State.h>
+#include <remill/Arch/Name.h>
 #include <remill/BC/Version.h>
 #include <remill/OS/OS.h>
-#include <remill/Arch/Capstone/MipsDisassembler.h>
 
 namespace remill {
 
@@ -47,7 +47,8 @@ const Arch *Arch::GetMips(OSName os_name_, ArchName arch_name_) {
   return new MipsArch(os_name_, arch_name_);
 }
 
-MipsArch::MipsArch(OSName os_name_, ArchName arch_name_) : Arch(os_name_, arch_name_), d(new PrivateData) {
+MipsArch::MipsArch(OSName os_name_, ArchName arch_name_)
+    : Arch(os_name_, arch_name_), d(new PrivateData) {
   CHECK(os_name_ == kOSLinux)
       << "The MIPS module does not support the specified operating system";
 
@@ -56,11 +57,11 @@ MipsArch::MipsArch(OSName os_name_, ArchName arch_name_) : Arch(os_name_, arch_n
 
   d->operating_system = os_name_;
   d->architecture = arch_name_;
-  d->disassembler = llvm::make_unique<MipsDisassembler>(arch_name_ == kArchMips64);
+  d->disassembler =
+      llvm::make_unique<MipsDisassembler>(arch_name_ == kArchMips64);
 }
 
-MipsArch::~MipsArch(void) {
-}
+MipsArch::~MipsArch(void) {}
 
 void MipsArch::PrepareModule(llvm::Module *mod) const {
   static_cast<void>(mod);
@@ -71,7 +72,8 @@ uint64_t MipsArch::ProgramCounter(const ArchState *state) const {
   return 0;
 }
 
-Instruction *MipsArch::DecodeInstruction(uint64_t address, const std::string &instr_bytes) const {
+Instruction *MipsArch::DecodeInstruction(uint64_t address,
+                                         const std::string &instr_bytes) const {
   std::unique_ptr<Instruction> remill_instr(new Instruction);
   if (!d->disassembler->Decode(remill_instr, address, instr_bytes))
     return nullptr;
@@ -80,4 +82,3 @@ Instruction *MipsArch::DecodeInstruction(uint64_t address, const std::string &in
 }
 
 }  // namespace remill
-  

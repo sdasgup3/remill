@@ -17,6 +17,8 @@
 #ifndef REMILL_ARCH_MIPS_RUNTIME_OPERATORS_H_
 #define REMILL_ARCH_MIPS_RUNTIME_OPERATORS_H_
 
+// clang-format off
+
 namespace {
 
 // Read a register directly. Sometimes this is needed for suppressed operands.
@@ -44,5 +46,7 @@ void _Write(Memory *, Reg &reg, IF_64BIT_ELSE(uint64_t, uint32_t) val) {
   } while (false)
 
 }  // namespace
+
+// clang-format on
 
 #endif  // REMILL_ARCH_MIPS_RUNTIME_OPERATORS_H_
