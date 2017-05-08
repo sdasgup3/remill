@@ -15,39 +15,38 @@ MipsDisassembler::MipsDisassembler(bool is_64_bits)
 
 MipsDisassembler::~MipsDisassembler() {}
 
-std::string MipsDisassembler::RegisterName(std::uintmax_t id) const noexcept {
+std::string MipsDisassembler::RegName(std::uintmax_t reg_id) const noexcept {
   return "";
 }
 
-bool MipsDisassembler::PostDisasmHook(
-    const CapstoneInstructionPtr &capstone_instr) const noexcept {
+bool MipsDisassembler::PostDisasmHook(const CapInstrPtr &cap_instr) const
+    noexcept {
   return true;
 }
 
 bool MipsDisassembler::PostDecodeHook(
-    const std::unique_ptr<Instruction> &remill_instr,
-    const CapstoneInstructionPtr &capstone_instr) const noexcept {
+    const std::unique_ptr<Instruction> &rem_instr,
+    const CapInstrPtr &cap_instr) const noexcept {
   return true;
 }
 
-bool MipsDisassembler::RegisterName(std::string &name, std::uintmax_t id) const
+bool MipsDisassembler::RegName(std::string &name, std::uintmax_t reg_id) const
     noexcept {
-  name = RegisterName(id);
+  name = RegName(reg_id);
   if (name.empty()) return false;
 
   return true;
 }
 
-bool MipsDisassembler::RegisterSize(std::size_t &size,
-                                    const std::string &name) const noexcept {
+bool MipsDisassembler::RegSize(std::size_t &size, const std::string &name) const
+    noexcept {
   size = d->address_size;
   return true;
 }
 
-bool MipsDisassembler::InstructionOperands(
-    std::vector<Operand> &operand_list,
-    const CapstoneInstructionPtr &capstone_instr) const noexcept {
-  const cs_mips &instruction_details = capstone_instr->detail->mips;
+bool MipsDisassembler::InstrOps(std::vector<Operand> &op_list,
+                                const CapInstrPtr &cap_instr) const noexcept {
+  const cs_mips &instruction_details = cap_instr->detail->mips;
 
   for (std::uint8_t operand_index = 0;
        operand_index < instruction_details.op_count; operand_index++) {
@@ -62,10 +61,9 @@ bool MipsDisassembler::InstructionOperands(
     if (instruction_operand.type == MIPS_OP_REG) {
       remill_operand.type = Operand::kTypeRegister;
       remill_operand.size = AddressSize() / 8;
-      remill_operand.action =
-          RegisterAccessType(instruction_operand.reg, capstone_instr);
+      remill_operand.action = RegAccessType(instruction_operand.reg, cap_instr);
 
-      remill_operand.reg.name = RegisterName(instruction_operand.reg);
+      remill_operand.reg.name = RegName(instruction_operand.reg);
       remill_operand.reg.size = remill_operand.size;
 
       // immediate values
@@ -91,7 +89,7 @@ bool MipsDisassembler::InstructionOperands(
 
       if (instruction_operand.mem.base != MIPS_REG_INVALID) {
         remill_operand.addr.base_reg.name =
-            RegisterName(instruction_operand.mem.base);
+            RegName(instruction_operand.mem.base);
         remill_operand.addr.base_reg.size = AddressSize() / 8;
       }
 
@@ -102,7 +100,7 @@ bool MipsDisassembler::InstructionOperands(
                                       : Operand::Address::kMemoryWrite);
     }
 
-    operand_list.push_back(remill_operand);
+    op_list.push_back(remill_operand);
   }
 
   return true;
@@ -112,8 +110,8 @@ std::size_t MipsDisassembler::AddressSize() const noexcept {
   return d->address_size;
 }
 
-Instruction::Category MipsDisassembler::InstructionCategory(
-    const CapstoneInstructionPtr &capstone_instr) const noexcept {
+Instruction::Category MipsDisassembler::InstrCategory(
+    const CapInstrPtr &cap_instr) const noexcept {
   /*
     The following opcodes were found in the MIPS architecture manual but were
     not
@@ -216,7 +214,7 @@ Instruction::Category MipsDisassembler::InstructionCategory(
   Instruction::Category category = {};
 
   // use the same sorting as the manual!
-  switch (capstone_instr->id) {
+  switch (cap_instr->id) {
     case MIPS_INS_ABS:
     case MIPS_INS_ADD:
     case MIPS_INS_ADDI:

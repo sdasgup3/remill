@@ -17,13 +17,13 @@
 #include "remill/Arch/Runtime/Intrinsics.h"
 #include "remill/Arch/Runtime/Operators.h"
 
+#include "remill/Arch/Mips/Runtime/Operators.h"
 #include "remill/Arch/Mips/Runtime/State.h"
 #include "remill/Arch/Mips/Runtime/Types.h"
-#include "remill/Arch/Mips/Runtime/Operators.h"
 
+#include <fenv.h>
 #include <algorithm>
 #include <bitset>
-#include <fenv.h>
 #include <cmath>
 
 //
@@ -31,11 +31,11 @@
 //
 
 #if 32 != ADDRESS_SIZE_BITS && 64 != ADDRESS_SIZE_BITS
-  #undef ADDRESS_SIZE_BITS
+#undef ADDRESS_SIZE_BITS
 #endif
 
 #if !defined(ADDRESS_SIZE_BITS)
-  #error ADDRESS_SIZE_BITS must be defined to either 32 or 64
+#error ADDRESS_SIZE_BITS must be defined to either 32 or 64
 #endif
 
 //
@@ -43,841 +43,841 @@
 //
 
 #if 32 == ADDRESS_SIZE_BITS
-  #define REG_A0 state.gpr.A0.dword
-  #define REG_A0_64 state.gpr.A0_64.dword
-  #define REG_A1 state.gpr.A1.dword
-  #define REG_A1_64 state.gpr.A1_64.dword
-  #define REG_A2 state.gpr.A2.dword
-  #define REG_A2_64 state.gpr.A2_64.dword
-  #define REG_A3 state.gpr.A3.dword
-  #define REG_A3_64 state.gpr.A3_64.dword
-  #define REG_AC0 state.gpr.AC0.dword
-  #define REG_AC0_64 state.gpr.AC0_64.dword
-  #define REG_AC1 state.gpr.AC1.dword
-  #define REG_AC2 state.gpr.AC2.dword
-  #define REG_AC3 state.gpr.AC3.dword
-  #define REG_AT state.gpr.AT.dword
-  #define REG_AT_64 state.gpr.AT_64.dword
-  #define REG_COP00 state.gpr.COP00.dword
-  #define REG_COP01 state.gpr.COP01.dword
-  #define REG_COP010 state.gpr.COP010.dword
-  #define REG_COP011 state.gpr.COP011.dword
-  #define REG_COP012 state.gpr.COP012.dword
-  #define REG_COP013 state.gpr.COP013.dword
-  #define REG_COP014 state.gpr.COP014.dword
-  #define REG_COP015 state.gpr.COP015.dword
-  #define REG_COP016 state.gpr.COP016.dword
-  #define REG_COP017 state.gpr.COP017.dword
-  #define REG_COP018 state.gpr.COP018.dword
-  #define REG_COP019 state.gpr.COP019.dword
-  #define REG_COP02 state.gpr.COP02.dword
-  #define REG_COP020 state.gpr.COP020.dword
-  #define REG_COP021 state.gpr.COP021.dword
-  #define REG_COP022 state.gpr.COP022.dword
-  #define REG_COP023 state.gpr.COP023.dword
-  #define REG_COP024 state.gpr.COP024.dword
-  #define REG_COP025 state.gpr.COP025.dword
-  #define REG_COP026 state.gpr.COP026.dword
-  #define REG_COP027 state.gpr.COP027.dword
-  #define REG_COP028 state.gpr.COP028.dword
-  #define REG_COP029 state.gpr.COP029.dword
-  #define REG_COP03 state.gpr.COP03.dword
-  #define REG_COP030 state.gpr.COP030.dword
-  #define REG_COP031 state.gpr.COP031.dword
-  #define REG_COP04 state.gpr.COP04.dword
-  #define REG_COP05 state.gpr.COP05.dword
-  #define REG_COP06 state.gpr.COP06.dword
-  #define REG_COP07 state.gpr.COP07.dword
-  #define REG_COP08 state.gpr.COP08.dword
-  #define REG_COP09 state.gpr.COP09.dword
-  #define REG_COP20 state.gpr.COP20.dword
-  #define REG_COP21 state.gpr.COP21.dword
-  #define REG_COP210 state.gpr.COP210.dword
-  #define REG_COP211 state.gpr.COP211.dword
-  #define REG_COP212 state.gpr.COP212.dword
-  #define REG_COP213 state.gpr.COP213.dword
-  #define REG_COP214 state.gpr.COP214.dword
-  #define REG_COP215 state.gpr.COP215.dword
-  #define REG_COP216 state.gpr.COP216.dword
-  #define REG_COP217 state.gpr.COP217.dword
-  #define REG_COP218 state.gpr.COP218.dword
-  #define REG_COP219 state.gpr.COP219.dword
-  #define REG_COP22 state.gpr.COP22.dword
-  #define REG_COP220 state.gpr.COP220.dword
-  #define REG_COP221 state.gpr.COP221.dword
-  #define REG_COP222 state.gpr.COP222.dword
-  #define REG_COP223 state.gpr.COP223.dword
-  #define REG_COP224 state.gpr.COP224.dword
-  #define REG_COP225 state.gpr.COP225.dword
-  #define REG_COP226 state.gpr.COP226.dword
-  #define REG_COP227 state.gpr.COP227.dword
-  #define REG_COP228 state.gpr.COP228.dword
-  #define REG_COP229 state.gpr.COP229.dword
-  #define REG_COP23 state.gpr.COP23.dword
-  #define REG_COP230 state.gpr.COP230.dword
-  #define REG_COP231 state.gpr.COP231.dword
-  #define REG_COP24 state.gpr.COP24.dword
-  #define REG_COP25 state.gpr.COP25.dword
-  #define REG_COP26 state.gpr.COP26.dword
-  #define REG_COP27 state.gpr.COP27.dword
-  #define REG_COP28 state.gpr.COP28.dword
-  #define REG_COP29 state.gpr.COP29.dword
-  #define REG_COP30 state.gpr.COP30.dword
-  #define REG_COP31 state.gpr.COP31.dword
-  #define REG_COP310 state.gpr.COP310.dword
-  #define REG_COP311 state.gpr.COP311.dword
-  #define REG_COP312 state.gpr.COP312.dword
-  #define REG_COP313 state.gpr.COP313.dword
-  #define REG_COP314 state.gpr.COP314.dword
-  #define REG_COP315 state.gpr.COP315.dword
-  #define REG_COP316 state.gpr.COP316.dword
-  #define REG_COP317 state.gpr.COP317.dword
-  #define REG_COP318 state.gpr.COP318.dword
-  #define REG_COP319 state.gpr.COP319.dword
-  #define REG_COP32 state.gpr.COP32.dword
-  #define REG_COP320 state.gpr.COP320.dword
-  #define REG_COP321 state.gpr.COP321.dword
-  #define REG_COP322 state.gpr.COP322.dword
-  #define REG_COP323 state.gpr.COP323.dword
-  #define REG_COP324 state.gpr.COP324.dword
-  #define REG_COP325 state.gpr.COP325.dword
-  #define REG_COP326 state.gpr.COP326.dword
-  #define REG_COP327 state.gpr.COP327.dword
-  #define REG_COP328 state.gpr.COP328.dword
-  #define REG_COP329 state.gpr.COP329.dword
-  #define REG_COP33 state.gpr.COP33.dword
-  #define REG_COP330 state.gpr.COP330.dword
-  #define REG_COP331 state.gpr.COP331.dword
-  #define REG_COP34 state.gpr.COP34.dword
-  #define REG_COP35 state.gpr.COP35.dword
-  #define REG_COP36 state.gpr.COP36.dword
-  #define REG_COP37 state.gpr.COP37.dword
-  #define REG_COP38 state.gpr.COP38.dword
-  #define REG_COP39 state.gpr.COP39.dword
-  #define REG_D0 state.gpr.D0.dword
-  #define REG_D0_64 state.gpr.D0_64.dword
-  #define REG_D1 state.gpr.D1.dword
-  #define REG_D10 state.gpr.D10.dword
-  #define REG_D10_64 state.gpr.D10_64.dword
-  #define REG_D11 state.gpr.D11.dword
-  #define REG_D11_64 state.gpr.D11_64.dword
-  #define REG_D12 state.gpr.D12.dword
-  #define REG_D12_64 state.gpr.D12_64.dword
-  #define REG_D13 state.gpr.D13.dword
-  #define REG_D13_64 state.gpr.D13_64.dword
-  #define REG_D14 state.gpr.D14.dword
-  #define REG_D14_64 state.gpr.D14_64.dword
-  #define REG_D15 state.gpr.D15.dword
-  #define REG_D15_64 state.gpr.D15_64.dword
-  #define REG_D16_64 state.gpr.D16_64.dword
-  #define REG_D17_64 state.gpr.D17_64.dword
-  #define REG_D18_64 state.gpr.D18_64.dword
-  #define REG_D19_64 state.gpr.D19_64.dword
-  #define REG_D1_64 state.gpr.D1_64.dword
-  #define REG_D2 state.gpr.D2.dword
-  #define REG_D20_64 state.gpr.D20_64.dword
-  #define REG_D21_64 state.gpr.D21_64.dword
-  #define REG_D22_64 state.gpr.D22_64.dword
-  #define REG_D23_64 state.gpr.D23_64.dword
-  #define REG_D24_64 state.gpr.D24_64.dword
-  #define REG_D25_64 state.gpr.D25_64.dword
-  #define REG_D26_64 state.gpr.D26_64.dword
-  #define REG_D27_64 state.gpr.D27_64.dword
-  #define REG_D28_64 state.gpr.D28_64.dword
-  #define REG_D29_64 state.gpr.D29_64.dword
-  #define REG_D2_64 state.gpr.D2_64.dword
-  #define REG_D3 state.gpr.D3.dword
-  #define REG_D30_64 state.gpr.D30_64.dword
-  #define REG_D31_64 state.gpr.D31_64.dword
-  #define REG_D3_64 state.gpr.D3_64.dword
-  #define REG_D4 state.gpr.D4.dword
-  #define REG_D4_64 state.gpr.D4_64.dword
-  #define REG_D5 state.gpr.D5.dword
-  #define REG_D5_64 state.gpr.D5_64.dword
-  #define REG_D6 state.gpr.D6.dword
-  #define REG_D6_64 state.gpr.D6_64.dword
-  #define REG_D7 state.gpr.D7.dword
-  #define REG_D7_64 state.gpr.D7_64.dword
-  #define REG_D8 state.gpr.D8.dword
-  #define REG_D8_64 state.gpr.D8_64.dword
-  #define REG_D9 state.gpr.D9.dword
-  #define REG_D9_64 state.gpr.D9_64.dword
-  #define REG_DSPCCond state.gpr.DSPCCond.dword
-  #define REG_DSPCarry state.gpr.DSPCarry.dword
-  #define REG_DSPEFI state.gpr.DSPEFI.dword
-  #define REG_DSPOutFlag state.gpr.DSPOutFlag.dword
-  #define REG_DSPOutFlag16_19 state.gpr.DSPOutFlag16_19.dword
-  #define REG_DSPOutFlag20 state.gpr.DSPOutFlag20.dword
-  #define REG_DSPOutFlag21 state.gpr.DSPOutFlag21.dword
-  #define REG_DSPOutFlag22 state.gpr.DSPOutFlag22.dword
-  #define REG_DSPOutFlag23 state.gpr.DSPOutFlag23.dword
-  #define REG_DSPPos state.gpr.DSPPos.dword
-  #define REG_DSPSCount state.gpr.DSPSCount.dword
-  #define REG_F0 state.gpr.F0.dword
-  #define REG_F1 state.gpr.F1.dword
-  #define REG_F10 state.gpr.F10.dword
-  #define REG_F11 state.gpr.F11.dword
-  #define REG_F12 state.gpr.F12.dword
-  #define REG_F13 state.gpr.F13.dword
-  #define REG_F14 state.gpr.F14.dword
-  #define REG_F15 state.gpr.F15.dword
-  #define REG_F16 state.gpr.F16.dword
-  #define REG_F17 state.gpr.F17.dword
-  #define REG_F18 state.gpr.F18.dword
-  #define REG_F19 state.gpr.F19.dword
-  #define REG_F2 state.gpr.F2.dword
-  #define REG_F20 state.gpr.F20.dword
-  #define REG_F21 state.gpr.F21.dword
-  #define REG_F22 state.gpr.F22.dword
-  #define REG_F23 state.gpr.F23.dword
-  #define REG_F24 state.gpr.F24.dword
-  #define REG_F25 state.gpr.F25.dword
-  #define REG_F26 state.gpr.F26.dword
-  #define REG_F27 state.gpr.F27.dword
-  #define REG_F28 state.gpr.F28.dword
-  #define REG_F29 state.gpr.F29.dword
-  #define REG_F3 state.gpr.F3.dword
-  #define REG_F30 state.gpr.F30.dword
-  #define REG_F31 state.gpr.F31.dword
-  #define REG_F4 state.gpr.F4.dword
-  #define REG_F5 state.gpr.F5.dword
-  #define REG_F6 state.gpr.F6.dword
-  #define REG_F7 state.gpr.F7.dword
-  #define REG_F8 state.gpr.F8.dword
-  #define REG_F9 state.gpr.F9.dword
-  #define REG_FCC0 state.gpr.FCC0.dword
-  #define REG_FCC1 state.gpr.FCC1.dword
-  #define REG_FCC2 state.gpr.FCC2.dword
-  #define REG_FCC3 state.gpr.FCC3.dword
-  #define REG_FCC4 state.gpr.FCC4.dword
-  #define REG_FCC5 state.gpr.FCC5.dword
-  #define REG_FCC6 state.gpr.FCC6.dword
-  #define REG_FCC7 state.gpr.FCC7.dword
-  #define REG_FCR0 state.gpr.FCR0.dword
-  #define REG_FCR1 state.gpr.FCR1.dword
-  #define REG_FCR10 state.gpr.FCR10.dword
-  #define REG_FCR11 state.gpr.FCR11.dword
-  #define REG_FCR12 state.gpr.FCR12.dword
-  #define REG_FCR13 state.gpr.FCR13.dword
-  #define REG_FCR14 state.gpr.FCR14.dword
-  #define REG_FCR15 state.gpr.FCR15.dword
-  #define REG_FCR16 state.gpr.FCR16.dword
-  #define REG_FCR17 state.gpr.FCR17.dword
-  #define REG_FCR18 state.gpr.FCR18.dword
-  #define REG_FCR19 state.gpr.FCR19.dword
-  #define REG_FCR2 state.gpr.FCR2.dword
-  #define REG_FCR20 state.gpr.FCR20.dword
-  #define REG_FCR21 state.gpr.FCR21.dword
-  #define REG_FCR22 state.gpr.FCR22.dword
-  #define REG_FCR23 state.gpr.FCR23.dword
-  #define REG_FCR24 state.gpr.FCR24.dword
-  #define REG_FCR25 state.gpr.FCR25.dword
-  #define REG_FCR26 state.gpr.FCR26.dword
-  #define REG_FCR27 state.gpr.FCR27.dword
-  #define REG_FCR28 state.gpr.FCR28.dword
-  #define REG_FCR29 state.gpr.FCR29.dword
-  #define REG_FCR3 state.gpr.FCR3.dword
-  #define REG_FCR30 state.gpr.FCR30.dword
-  #define REG_FCR31 state.gpr.FCR31.dword
-  #define REG_FCR4 state.gpr.FCR4.dword
-  #define REG_FCR5 state.gpr.FCR5.dword
-  #define REG_FCR6 state.gpr.FCR6.dword
-  #define REG_FCR7 state.gpr.FCR7.dword
-  #define REG_FCR8 state.gpr.FCR8.dword
-  #define REG_FCR9 state.gpr.FCR9.dword
-  #define REG_FP state.gpr.FP.dword
-  #define REG_FP_64 state.gpr.FP_64.dword
-  #define REG_F_HI0 state.gpr.F_HI0.dword
-  #define REG_F_HI1 state.gpr.F_HI1.dword
-  #define REG_F_HI10 state.gpr.F_HI10.dword
-  #define REG_F_HI11 state.gpr.F_HI11.dword
-  #define REG_F_HI12 state.gpr.F_HI12.dword
-  #define REG_F_HI13 state.gpr.F_HI13.dword
-  #define REG_F_HI14 state.gpr.F_HI14.dword
-  #define REG_F_HI15 state.gpr.F_HI15.dword
-  #define REG_F_HI16 state.gpr.F_HI16.dword
-  #define REG_F_HI17 state.gpr.F_HI17.dword
-  #define REG_F_HI18 state.gpr.F_HI18.dword
-  #define REG_F_HI19 state.gpr.F_HI19.dword
-  #define REG_F_HI2 state.gpr.F_HI2.dword
-  #define REG_F_HI20 state.gpr.F_HI20.dword
-  #define REG_F_HI21 state.gpr.F_HI21.dword
-  #define REG_F_HI22 state.gpr.F_HI22.dword
-  #define REG_F_HI23 state.gpr.F_HI23.dword
-  #define REG_F_HI24 state.gpr.F_HI24.dword
-  #define REG_F_HI25 state.gpr.F_HI25.dword
-  #define REG_F_HI26 state.gpr.F_HI26.dword
-  #define REG_F_HI27 state.gpr.F_HI27.dword
-  #define REG_F_HI28 state.gpr.F_HI28.dword
-  #define REG_F_HI29 state.gpr.F_HI29.dword
-  #define REG_F_HI3 state.gpr.F_HI3.dword
-  #define REG_F_HI30 state.gpr.F_HI30.dword
-  #define REG_F_HI31 state.gpr.F_HI31.dword
-  #define REG_F_HI4 state.gpr.F_HI4.dword
-  #define REG_F_HI5 state.gpr.F_HI5.dword
-  #define REG_F_HI6 state.gpr.F_HI6.dword
-  #define REG_F_HI7 state.gpr.F_HI7.dword
-  #define REG_F_HI8 state.gpr.F_HI8.dword
-  #define REG_F_HI9 state.gpr.F_HI9.dword
-  #define REG_GP state.gpr.GP.dword
-  #define REG_GP_64 state.gpr.GP_64.dword
-  #define REG_HI0 state.gpr.HI0.dword
-  #define REG_HI0_64 state.gpr.HI0_64.dword
-  #define REG_HI1 state.gpr.HI1.dword
-  #define REG_HI2 state.gpr.HI2.dword
-  #define REG_HI3 state.gpr.HI3.dword
-  #define REG_HWR0 state.gpr.HWR0.dword
-  #define REG_HWR1 state.gpr.HWR1.dword
-  #define REG_HWR10 state.gpr.HWR10.dword
-  #define REG_HWR11 state.gpr.HWR11.dword
-  #define REG_HWR12 state.gpr.HWR12.dword
-  #define REG_HWR13 state.gpr.HWR13.dword
-  #define REG_HWR14 state.gpr.HWR14.dword
-  #define REG_HWR15 state.gpr.HWR15.dword
-  #define REG_HWR16 state.gpr.HWR16.dword
-  #define REG_HWR17 state.gpr.HWR17.dword
-  #define REG_HWR18 state.gpr.HWR18.dword
-  #define REG_HWR19 state.gpr.HWR19.dword
-  #define REG_HWR2 state.gpr.HWR2.dword
-  #define REG_HWR20 state.gpr.HWR20.dword
-  #define REG_HWR21 state.gpr.HWR21.dword
-  #define REG_HWR22 state.gpr.HWR22.dword
-  #define REG_HWR23 state.gpr.HWR23.dword
-  #define REG_HWR24 state.gpr.HWR24.dword
-  #define REG_HWR25 state.gpr.HWR25.dword
-  #define REG_HWR26 state.gpr.HWR26.dword
-  #define REG_HWR27 state.gpr.HWR27.dword
-  #define REG_HWR28 state.gpr.HWR28.dword
-  #define REG_HWR29 state.gpr.HWR29.dword
-  #define REG_HWR3 state.gpr.HWR3.dword
-  #define REG_HWR30 state.gpr.HWR30.dword
-  #define REG_HWR31 state.gpr.HWR31.dword
-  #define REG_HWR4 state.gpr.HWR4.dword
-  #define REG_HWR5 state.gpr.HWR5.dword
-  #define REG_HWR6 state.gpr.HWR6.dword
-  #define REG_HWR7 state.gpr.HWR7.dword
-  #define REG_HWR8 state.gpr.HWR8.dword
-  #define REG_HWR9 state.gpr.HWR9.dword
-  #define REG_K0 state.gpr.K0.dword
-  #define REG_K0_64 state.gpr.K0_64.dword
-  #define REG_K1 state.gpr.K1.dword
-  #define REG_K1_64 state.gpr.K1_64.dword
-  #define REG_LO0 state.gpr.LO0.dword
-  #define REG_LO0_64 state.gpr.LO0_64.dword
-  #define REG_LO1 state.gpr.LO1.dword
-  #define REG_LO2 state.gpr.LO2.dword
-  #define REG_LO3 state.gpr.LO3.dword
-  #define REG_MPL0 state.gpr.MPL0.dword
-  #define REG_MPL1 state.gpr.MPL1.dword
-  #define REG_MPL2 state.gpr.MPL2.dword
-  #define REG_MSAAccess state.gpr.MSAAccess.dword
-  #define REG_MSACSR state.gpr.MSACSR.dword
-  #define REG_MSAIR state.gpr.MSAIR.dword
-  #define REG_MSAMap state.gpr.MSAMap.dword
-  #define REG_MSAModify state.gpr.MSAModify.dword
-  #define REG_MSARequest state.gpr.MSARequest.dword
-  #define REG_MSASave state.gpr.MSASave.dword
-  #define REG_MSAUnmap state.gpr.MSAUnmap.dword
-  #define REG_P0 state.gpr.P0.dword
-  #define REG_P1 state.gpr.P1.dword
-  #define REG_P2 state.gpr.P2.dword
-  #define REG_PC state.gpr.PC.dword
-  #define REG_RA state.gpr.RA.dword
-  #define REG_RA_64 state.gpr.RA_64.dword
-  #define REG_S0 state.gpr.S0.dword
-  #define REG_S0_64 state.gpr.S0_64.dword
-  #define REG_S1 state.gpr.S1.dword
-  #define REG_S1_64 state.gpr.S1_64.dword
-  #define REG_S2 state.gpr.S2.dword
-  #define REG_S2_64 state.gpr.S2_64.dword
-  #define REG_S3 state.gpr.S3.dword
-  #define REG_S3_64 state.gpr.S3_64.dword
-  #define REG_S4 state.gpr.S4.dword
-  #define REG_S4_64 state.gpr.S4_64.dword
-  #define REG_S5 state.gpr.S5.dword
-  #define REG_S5_64 state.gpr.S5_64.dword
-  #define REG_S6 state.gpr.S6.dword
-  #define REG_S6_64 state.gpr.S6_64.dword
-  #define REG_S7 state.gpr.S7.dword
-  #define REG_S7_64 state.gpr.S7_64.dword
-  #define REG_SP state.gpr.SP.dword
-  #define REG_SP_64 state.gpr.SP_64.dword
-  #define REG_T0 state.gpr.T0.dword
-  #define REG_T0_64 state.gpr.T0_64.dword
-  #define REG_T1 state.gpr.T1.dword
-  #define REG_T1_64 state.gpr.T1_64.dword
-  #define REG_T2 state.gpr.T2.dword
-  #define REG_T2_64 state.gpr.T2_64.dword
-  #define REG_T3 state.gpr.T3.dword
-  #define REG_T3_64 state.gpr.T3_64.dword
-  #define REG_T4 state.gpr.T4.dword
-  #define REG_T4_64 state.gpr.T4_64.dword
-  #define REG_T5 state.gpr.T5.dword
-  #define REG_T5_64 state.gpr.T5_64.dword
-  #define REG_T6 state.gpr.T6.dword
-  #define REG_T6_64 state.gpr.T6_64.dword
-  #define REG_T7 state.gpr.T7.dword
-  #define REG_T7_64 state.gpr.T7_64.dword
-  #define REG_T8 state.gpr.T8.dword
-  #define REG_T8_64 state.gpr.T8_64.dword
-  #define REG_T9 state.gpr.T9.dword
-  #define REG_T9_64 state.gpr.T9_64.dword
-  #define REG_V0 state.gpr.V0.dword
-  #define REG_V0_64 state.gpr.V0_64.dword
-  #define REG_V1 state.gpr.V1.dword
-  #define REG_V1_64 state.gpr.V1_64.dword
-  #define REG_W0 state.gpr.W0.dword
-  #define REG_W1 state.gpr.W1.dword
-  #define REG_W10 state.gpr.W10.dword
-  #define REG_W11 state.gpr.W11.dword
-  #define REG_W12 state.gpr.W12.dword
-  #define REG_W13 state.gpr.W13.dword
-  #define REG_W14 state.gpr.W14.dword
-  #define REG_W15 state.gpr.W15.dword
-  #define REG_W16 state.gpr.W16.dword
-  #define REG_W17 state.gpr.W17.dword
-  #define REG_W18 state.gpr.W18.dword
-  #define REG_W19 state.gpr.W19.dword
-  #define REG_W2 state.gpr.W2.dword
-  #define REG_W20 state.gpr.W20.dword
-  #define REG_W21 state.gpr.W21.dword
-  #define REG_W22 state.gpr.W22.dword
-  #define REG_W23 state.gpr.W23.dword
-  #define REG_W24 state.gpr.W24.dword
-  #define REG_W25 state.gpr.W25.dword
-  #define REG_W26 state.gpr.W26.dword
-  #define REG_W27 state.gpr.W27.dword
-  #define REG_W28 state.gpr.W28.dword
-  #define REG_W29 state.gpr.W29.dword
-  #define REG_W3 state.gpr.W3.dword
-  #define REG_W30 state.gpr.W30.dword
-  #define REG_W31 state.gpr.W31.dword
-  #define REG_W4 state.gpr.W4.dword
-  #define REG_W5 state.gpr.W5.dword
-  #define REG_W6 state.gpr.W6.dword
-  #define REG_W7 state.gpr.W7.dword
-  #define REG_W8 state.gpr.W8.dword
-  #define REG_W9 state.gpr.W9.dword
-  #define REG_ZERO state.gpr.ZERO.dword
-  #define REG_ZERO_64 state.gpr.ZERO_64.dword
+#define REG_A0 state.gpr.A0.dword
+#define REG_A0_64 state.gpr.A0_64.dword
+#define REG_A1 state.gpr.A1.dword
+#define REG_A1_64 state.gpr.A1_64.dword
+#define REG_A2 state.gpr.A2.dword
+#define REG_A2_64 state.gpr.A2_64.dword
+#define REG_A3 state.gpr.A3.dword
+#define REG_A3_64 state.gpr.A3_64.dword
+#define REG_AC0 state.gpr.AC0.dword
+#define REG_AC0_64 state.gpr.AC0_64.dword
+#define REG_AC1 state.gpr.AC1.dword
+#define REG_AC2 state.gpr.AC2.dword
+#define REG_AC3 state.gpr.AC3.dword
+#define REG_AT state.gpr.AT.dword
+#define REG_AT_64 state.gpr.AT_64.dword
+#define REG_COP00 state.gpr.COP00.dword
+#define REG_COP01 state.gpr.COP01.dword
+#define REG_COP010 state.gpr.COP010.dword
+#define REG_COP011 state.gpr.COP011.dword
+#define REG_COP012 state.gpr.COP012.dword
+#define REG_COP013 state.gpr.COP013.dword
+#define REG_COP014 state.gpr.COP014.dword
+#define REG_COP015 state.gpr.COP015.dword
+#define REG_COP016 state.gpr.COP016.dword
+#define REG_COP017 state.gpr.COP017.dword
+#define REG_COP018 state.gpr.COP018.dword
+#define REG_COP019 state.gpr.COP019.dword
+#define REG_COP02 state.gpr.COP02.dword
+#define REG_COP020 state.gpr.COP020.dword
+#define REG_COP021 state.gpr.COP021.dword
+#define REG_COP022 state.gpr.COP022.dword
+#define REG_COP023 state.gpr.COP023.dword
+#define REG_COP024 state.gpr.COP024.dword
+#define REG_COP025 state.gpr.COP025.dword
+#define REG_COP026 state.gpr.COP026.dword
+#define REG_COP027 state.gpr.COP027.dword
+#define REG_COP028 state.gpr.COP028.dword
+#define REG_COP029 state.gpr.COP029.dword
+#define REG_COP03 state.gpr.COP03.dword
+#define REG_COP030 state.gpr.COP030.dword
+#define REG_COP031 state.gpr.COP031.dword
+#define REG_COP04 state.gpr.COP04.dword
+#define REG_COP05 state.gpr.COP05.dword
+#define REG_COP06 state.gpr.COP06.dword
+#define REG_COP07 state.gpr.COP07.dword
+#define REG_COP08 state.gpr.COP08.dword
+#define REG_COP09 state.gpr.COP09.dword
+#define REG_COP20 state.gpr.COP20.dword
+#define REG_COP21 state.gpr.COP21.dword
+#define REG_COP210 state.gpr.COP210.dword
+#define REG_COP211 state.gpr.COP211.dword
+#define REG_COP212 state.gpr.COP212.dword
+#define REG_COP213 state.gpr.COP213.dword
+#define REG_COP214 state.gpr.COP214.dword
+#define REG_COP215 state.gpr.COP215.dword
+#define REG_COP216 state.gpr.COP216.dword
+#define REG_COP217 state.gpr.COP217.dword
+#define REG_COP218 state.gpr.COP218.dword
+#define REG_COP219 state.gpr.COP219.dword
+#define REG_COP22 state.gpr.COP22.dword
+#define REG_COP220 state.gpr.COP220.dword
+#define REG_COP221 state.gpr.COP221.dword
+#define REG_COP222 state.gpr.COP222.dword
+#define REG_COP223 state.gpr.COP223.dword
+#define REG_COP224 state.gpr.COP224.dword
+#define REG_COP225 state.gpr.COP225.dword
+#define REG_COP226 state.gpr.COP226.dword
+#define REG_COP227 state.gpr.COP227.dword
+#define REG_COP228 state.gpr.COP228.dword
+#define REG_COP229 state.gpr.COP229.dword
+#define REG_COP23 state.gpr.COP23.dword
+#define REG_COP230 state.gpr.COP230.dword
+#define REG_COP231 state.gpr.COP231.dword
+#define REG_COP24 state.gpr.COP24.dword
+#define REG_COP25 state.gpr.COP25.dword
+#define REG_COP26 state.gpr.COP26.dword
+#define REG_COP27 state.gpr.COP27.dword
+#define REG_COP28 state.gpr.COP28.dword
+#define REG_COP29 state.gpr.COP29.dword
+#define REG_COP30 state.gpr.COP30.dword
+#define REG_COP31 state.gpr.COP31.dword
+#define REG_COP310 state.gpr.COP310.dword
+#define REG_COP311 state.gpr.COP311.dword
+#define REG_COP312 state.gpr.COP312.dword
+#define REG_COP313 state.gpr.COP313.dword
+#define REG_COP314 state.gpr.COP314.dword
+#define REG_COP315 state.gpr.COP315.dword
+#define REG_COP316 state.gpr.COP316.dword
+#define REG_COP317 state.gpr.COP317.dword
+#define REG_COP318 state.gpr.COP318.dword
+#define REG_COP319 state.gpr.COP319.dword
+#define REG_COP32 state.gpr.COP32.dword
+#define REG_COP320 state.gpr.COP320.dword
+#define REG_COP321 state.gpr.COP321.dword
+#define REG_COP322 state.gpr.COP322.dword
+#define REG_COP323 state.gpr.COP323.dword
+#define REG_COP324 state.gpr.COP324.dword
+#define REG_COP325 state.gpr.COP325.dword
+#define REG_COP326 state.gpr.COP326.dword
+#define REG_COP327 state.gpr.COP327.dword
+#define REG_COP328 state.gpr.COP328.dword
+#define REG_COP329 state.gpr.COP329.dword
+#define REG_COP33 state.gpr.COP33.dword
+#define REG_COP330 state.gpr.COP330.dword
+#define REG_COP331 state.gpr.COP331.dword
+#define REG_COP34 state.gpr.COP34.dword
+#define REG_COP35 state.gpr.COP35.dword
+#define REG_COP36 state.gpr.COP36.dword
+#define REG_COP37 state.gpr.COP37.dword
+#define REG_COP38 state.gpr.COP38.dword
+#define REG_COP39 state.gpr.COP39.dword
+#define REG_D0 state.gpr.D0.dword
+#define REG_D0_64 state.gpr.D0_64.dword
+#define REG_D1 state.gpr.D1.dword
+#define REG_D10 state.gpr.D10.dword
+#define REG_D10_64 state.gpr.D10_64.dword
+#define REG_D11 state.gpr.D11.dword
+#define REG_D11_64 state.gpr.D11_64.dword
+#define REG_D12 state.gpr.D12.dword
+#define REG_D12_64 state.gpr.D12_64.dword
+#define REG_D13 state.gpr.D13.dword
+#define REG_D13_64 state.gpr.D13_64.dword
+#define REG_D14 state.gpr.D14.dword
+#define REG_D14_64 state.gpr.D14_64.dword
+#define REG_D15 state.gpr.D15.dword
+#define REG_D15_64 state.gpr.D15_64.dword
+#define REG_D16_64 state.gpr.D16_64.dword
+#define REG_D17_64 state.gpr.D17_64.dword
+#define REG_D18_64 state.gpr.D18_64.dword
+#define REG_D19_64 state.gpr.D19_64.dword
+#define REG_D1_64 state.gpr.D1_64.dword
+#define REG_D2 state.gpr.D2.dword
+#define REG_D20_64 state.gpr.D20_64.dword
+#define REG_D21_64 state.gpr.D21_64.dword
+#define REG_D22_64 state.gpr.D22_64.dword
+#define REG_D23_64 state.gpr.D23_64.dword
+#define REG_D24_64 state.gpr.D24_64.dword
+#define REG_D25_64 state.gpr.D25_64.dword
+#define REG_D26_64 state.gpr.D26_64.dword
+#define REG_D27_64 state.gpr.D27_64.dword
+#define REG_D28_64 state.gpr.D28_64.dword
+#define REG_D29_64 state.gpr.D29_64.dword
+#define REG_D2_64 state.gpr.D2_64.dword
+#define REG_D3 state.gpr.D3.dword
+#define REG_D30_64 state.gpr.D30_64.dword
+#define REG_D31_64 state.gpr.D31_64.dword
+#define REG_D3_64 state.gpr.D3_64.dword
+#define REG_D4 state.gpr.D4.dword
+#define REG_D4_64 state.gpr.D4_64.dword
+#define REG_D5 state.gpr.D5.dword
+#define REG_D5_64 state.gpr.D5_64.dword
+#define REG_D6 state.gpr.D6.dword
+#define REG_D6_64 state.gpr.D6_64.dword
+#define REG_D7 state.gpr.D7.dword
+#define REG_D7_64 state.gpr.D7_64.dword
+#define REG_D8 state.gpr.D8.dword
+#define REG_D8_64 state.gpr.D8_64.dword
+#define REG_D9 state.gpr.D9.dword
+#define REG_D9_64 state.gpr.D9_64.dword
+#define REG_DSPCCond state.gpr.DSPCCond.dword
+#define REG_DSPCarry state.gpr.DSPCarry.dword
+#define REG_DSPEFI state.gpr.DSPEFI.dword
+#define REG_DSPOutFlag state.gpr.DSPOutFlag.dword
+#define REG_DSPOutFlag16_19 state.gpr.DSPOutFlag16_19.dword
+#define REG_DSPOutFlag20 state.gpr.DSPOutFlag20.dword
+#define REG_DSPOutFlag21 state.gpr.DSPOutFlag21.dword
+#define REG_DSPOutFlag22 state.gpr.DSPOutFlag22.dword
+#define REG_DSPOutFlag23 state.gpr.DSPOutFlag23.dword
+#define REG_DSPPos state.gpr.DSPPos.dword
+#define REG_DSPSCount state.gpr.DSPSCount.dword
+#define REG_F0 state.gpr.F0.dword
+#define REG_F1 state.gpr.F1.dword
+#define REG_F10 state.gpr.F10.dword
+#define REG_F11 state.gpr.F11.dword
+#define REG_F12 state.gpr.F12.dword
+#define REG_F13 state.gpr.F13.dword
+#define REG_F14 state.gpr.F14.dword
+#define REG_F15 state.gpr.F15.dword
+#define REG_F16 state.gpr.F16.dword
+#define REG_F17 state.gpr.F17.dword
+#define REG_F18 state.gpr.F18.dword
+#define REG_F19 state.gpr.F19.dword
+#define REG_F2 state.gpr.F2.dword
+#define REG_F20 state.gpr.F20.dword
+#define REG_F21 state.gpr.F21.dword
+#define REG_F22 state.gpr.F22.dword
+#define REG_F23 state.gpr.F23.dword
+#define REG_F24 state.gpr.F24.dword
+#define REG_F25 state.gpr.F25.dword
+#define REG_F26 state.gpr.F26.dword
+#define REG_F27 state.gpr.F27.dword
+#define REG_F28 state.gpr.F28.dword
+#define REG_F29 state.gpr.F29.dword
+#define REG_F3 state.gpr.F3.dword
+#define REG_F30 state.gpr.F30.dword
+#define REG_F31 state.gpr.F31.dword
+#define REG_F4 state.gpr.F4.dword
+#define REG_F5 state.gpr.F5.dword
+#define REG_F6 state.gpr.F6.dword
+#define REG_F7 state.gpr.F7.dword
+#define REG_F8 state.gpr.F8.dword
+#define REG_F9 state.gpr.F9.dword
+#define REG_FCC0 state.gpr.FCC0.dword
+#define REG_FCC1 state.gpr.FCC1.dword
+#define REG_FCC2 state.gpr.FCC2.dword
+#define REG_FCC3 state.gpr.FCC3.dword
+#define REG_FCC4 state.gpr.FCC4.dword
+#define REG_FCC5 state.gpr.FCC5.dword
+#define REG_FCC6 state.gpr.FCC6.dword
+#define REG_FCC7 state.gpr.FCC7.dword
+#define REG_FCR0 state.gpr.FCR0.dword
+#define REG_FCR1 state.gpr.FCR1.dword
+#define REG_FCR10 state.gpr.FCR10.dword
+#define REG_FCR11 state.gpr.FCR11.dword
+#define REG_FCR12 state.gpr.FCR12.dword
+#define REG_FCR13 state.gpr.FCR13.dword
+#define REG_FCR14 state.gpr.FCR14.dword
+#define REG_FCR15 state.gpr.FCR15.dword
+#define REG_FCR16 state.gpr.FCR16.dword
+#define REG_FCR17 state.gpr.FCR17.dword
+#define REG_FCR18 state.gpr.FCR18.dword
+#define REG_FCR19 state.gpr.FCR19.dword
+#define REG_FCR2 state.gpr.FCR2.dword
+#define REG_FCR20 state.gpr.FCR20.dword
+#define REG_FCR21 state.gpr.FCR21.dword
+#define REG_FCR22 state.gpr.FCR22.dword
+#define REG_FCR23 state.gpr.FCR23.dword
+#define REG_FCR24 state.gpr.FCR24.dword
+#define REG_FCR25 state.gpr.FCR25.dword
+#define REG_FCR26 state.gpr.FCR26.dword
+#define REG_FCR27 state.gpr.FCR27.dword
+#define REG_FCR28 state.gpr.FCR28.dword
+#define REG_FCR29 state.gpr.FCR29.dword
+#define REG_FCR3 state.gpr.FCR3.dword
+#define REG_FCR30 state.gpr.FCR30.dword
+#define REG_FCR31 state.gpr.FCR31.dword
+#define REG_FCR4 state.gpr.FCR4.dword
+#define REG_FCR5 state.gpr.FCR5.dword
+#define REG_FCR6 state.gpr.FCR6.dword
+#define REG_FCR7 state.gpr.FCR7.dword
+#define REG_FCR8 state.gpr.FCR8.dword
+#define REG_FCR9 state.gpr.FCR9.dword
+#define REG_FP state.gpr.FP.dword
+#define REG_FP_64 state.gpr.FP_64.dword
+#define REG_F_HI0 state.gpr.F_HI0.dword
+#define REG_F_HI1 state.gpr.F_HI1.dword
+#define REG_F_HI10 state.gpr.F_HI10.dword
+#define REG_F_HI11 state.gpr.F_HI11.dword
+#define REG_F_HI12 state.gpr.F_HI12.dword
+#define REG_F_HI13 state.gpr.F_HI13.dword
+#define REG_F_HI14 state.gpr.F_HI14.dword
+#define REG_F_HI15 state.gpr.F_HI15.dword
+#define REG_F_HI16 state.gpr.F_HI16.dword
+#define REG_F_HI17 state.gpr.F_HI17.dword
+#define REG_F_HI18 state.gpr.F_HI18.dword
+#define REG_F_HI19 state.gpr.F_HI19.dword
+#define REG_F_HI2 state.gpr.F_HI2.dword
+#define REG_F_HI20 state.gpr.F_HI20.dword
+#define REG_F_HI21 state.gpr.F_HI21.dword
+#define REG_F_HI22 state.gpr.F_HI22.dword
+#define REG_F_HI23 state.gpr.F_HI23.dword
+#define REG_F_HI24 state.gpr.F_HI24.dword
+#define REG_F_HI25 state.gpr.F_HI25.dword
+#define REG_F_HI26 state.gpr.F_HI26.dword
+#define REG_F_HI27 state.gpr.F_HI27.dword
+#define REG_F_HI28 state.gpr.F_HI28.dword
+#define REG_F_HI29 state.gpr.F_HI29.dword
+#define REG_F_HI3 state.gpr.F_HI3.dword
+#define REG_F_HI30 state.gpr.F_HI30.dword
+#define REG_F_HI31 state.gpr.F_HI31.dword
+#define REG_F_HI4 state.gpr.F_HI4.dword
+#define REG_F_HI5 state.gpr.F_HI5.dword
+#define REG_F_HI6 state.gpr.F_HI6.dword
+#define REG_F_HI7 state.gpr.F_HI7.dword
+#define REG_F_HI8 state.gpr.F_HI8.dword
+#define REG_F_HI9 state.gpr.F_HI9.dword
+#define REG_GP state.gpr.GP.dword
+#define REG_GP_64 state.gpr.GP_64.dword
+#define REG_HI0 state.gpr.HI0.dword
+#define REG_HI0_64 state.gpr.HI0_64.dword
+#define REG_HI1 state.gpr.HI1.dword
+#define REG_HI2 state.gpr.HI2.dword
+#define REG_HI3 state.gpr.HI3.dword
+#define REG_HWR0 state.gpr.HWR0.dword
+#define REG_HWR1 state.gpr.HWR1.dword
+#define REG_HWR10 state.gpr.HWR10.dword
+#define REG_HWR11 state.gpr.HWR11.dword
+#define REG_HWR12 state.gpr.HWR12.dword
+#define REG_HWR13 state.gpr.HWR13.dword
+#define REG_HWR14 state.gpr.HWR14.dword
+#define REG_HWR15 state.gpr.HWR15.dword
+#define REG_HWR16 state.gpr.HWR16.dword
+#define REG_HWR17 state.gpr.HWR17.dword
+#define REG_HWR18 state.gpr.HWR18.dword
+#define REG_HWR19 state.gpr.HWR19.dword
+#define REG_HWR2 state.gpr.HWR2.dword
+#define REG_HWR20 state.gpr.HWR20.dword
+#define REG_HWR21 state.gpr.HWR21.dword
+#define REG_HWR22 state.gpr.HWR22.dword
+#define REG_HWR23 state.gpr.HWR23.dword
+#define REG_HWR24 state.gpr.HWR24.dword
+#define REG_HWR25 state.gpr.HWR25.dword
+#define REG_HWR26 state.gpr.HWR26.dword
+#define REG_HWR27 state.gpr.HWR27.dword
+#define REG_HWR28 state.gpr.HWR28.dword
+#define REG_HWR29 state.gpr.HWR29.dword
+#define REG_HWR3 state.gpr.HWR3.dword
+#define REG_HWR30 state.gpr.HWR30.dword
+#define REG_HWR31 state.gpr.HWR31.dword
+#define REG_HWR4 state.gpr.HWR4.dword
+#define REG_HWR5 state.gpr.HWR5.dword
+#define REG_HWR6 state.gpr.HWR6.dword
+#define REG_HWR7 state.gpr.HWR7.dword
+#define REG_HWR8 state.gpr.HWR8.dword
+#define REG_HWR9 state.gpr.HWR9.dword
+#define REG_K0 state.gpr.K0.dword
+#define REG_K0_64 state.gpr.K0_64.dword
+#define REG_K1 state.gpr.K1.dword
+#define REG_K1_64 state.gpr.K1_64.dword
+#define REG_LO0 state.gpr.LO0.dword
+#define REG_LO0_64 state.gpr.LO0_64.dword
+#define REG_LO1 state.gpr.LO1.dword
+#define REG_LO2 state.gpr.LO2.dword
+#define REG_LO3 state.gpr.LO3.dword
+#define REG_MPL0 state.gpr.MPL0.dword
+#define REG_MPL1 state.gpr.MPL1.dword
+#define REG_MPL2 state.gpr.MPL2.dword
+#define REG_MSAAccess state.gpr.MSAAccess.dword
+#define REG_MSACSR state.gpr.MSACSR.dword
+#define REG_MSAIR state.gpr.MSAIR.dword
+#define REG_MSAMap state.gpr.MSAMap.dword
+#define REG_MSAModify state.gpr.MSAModify.dword
+#define REG_MSARequest state.gpr.MSARequest.dword
+#define REG_MSASave state.gpr.MSASave.dword
+#define REG_MSAUnmap state.gpr.MSAUnmap.dword
+#define REG_P0 state.gpr.P0.dword
+#define REG_P1 state.gpr.P1.dword
+#define REG_P2 state.gpr.P2.dword
+#define REG_PC state.gpr.PC.dword
+#define REG_RA state.gpr.RA.dword
+#define REG_RA_64 state.gpr.RA_64.dword
+#define REG_S0 state.gpr.S0.dword
+#define REG_S0_64 state.gpr.S0_64.dword
+#define REG_S1 state.gpr.S1.dword
+#define REG_S1_64 state.gpr.S1_64.dword
+#define REG_S2 state.gpr.S2.dword
+#define REG_S2_64 state.gpr.S2_64.dword
+#define REG_S3 state.gpr.S3.dword
+#define REG_S3_64 state.gpr.S3_64.dword
+#define REG_S4 state.gpr.S4.dword
+#define REG_S4_64 state.gpr.S4_64.dword
+#define REG_S5 state.gpr.S5.dword
+#define REG_S5_64 state.gpr.S5_64.dword
+#define REG_S6 state.gpr.S6.dword
+#define REG_S6_64 state.gpr.S6_64.dword
+#define REG_S7 state.gpr.S7.dword
+#define REG_S7_64 state.gpr.S7_64.dword
+#define REG_SP state.gpr.SP.dword
+#define REG_SP_64 state.gpr.SP_64.dword
+#define REG_T0 state.gpr.T0.dword
+#define REG_T0_64 state.gpr.T0_64.dword
+#define REG_T1 state.gpr.T1.dword
+#define REG_T1_64 state.gpr.T1_64.dword
+#define REG_T2 state.gpr.T2.dword
+#define REG_T2_64 state.gpr.T2_64.dword
+#define REG_T3 state.gpr.T3.dword
+#define REG_T3_64 state.gpr.T3_64.dword
+#define REG_T4 state.gpr.T4.dword
+#define REG_T4_64 state.gpr.T4_64.dword
+#define REG_T5 state.gpr.T5.dword
+#define REG_T5_64 state.gpr.T5_64.dword
+#define REG_T6 state.gpr.T6.dword
+#define REG_T6_64 state.gpr.T6_64.dword
+#define REG_T7 state.gpr.T7.dword
+#define REG_T7_64 state.gpr.T7_64.dword
+#define REG_T8 state.gpr.T8.dword
+#define REG_T8_64 state.gpr.T8_64.dword
+#define REG_T9 state.gpr.T9.dword
+#define REG_T9_64 state.gpr.T9_64.dword
+#define REG_V0 state.gpr.V0.dword
+#define REG_V0_64 state.gpr.V0_64.dword
+#define REG_V1 state.gpr.V1.dword
+#define REG_V1_64 state.gpr.V1_64.dword
+#define REG_W0 state.gpr.W0.dword
+#define REG_W1 state.gpr.W1.dword
+#define REG_W10 state.gpr.W10.dword
+#define REG_W11 state.gpr.W11.dword
+#define REG_W12 state.gpr.W12.dword
+#define REG_W13 state.gpr.W13.dword
+#define REG_W14 state.gpr.W14.dword
+#define REG_W15 state.gpr.W15.dword
+#define REG_W16 state.gpr.W16.dword
+#define REG_W17 state.gpr.W17.dword
+#define REG_W18 state.gpr.W18.dword
+#define REG_W19 state.gpr.W19.dword
+#define REG_W2 state.gpr.W2.dword
+#define REG_W20 state.gpr.W20.dword
+#define REG_W21 state.gpr.W21.dword
+#define REG_W22 state.gpr.W22.dword
+#define REG_W23 state.gpr.W23.dword
+#define REG_W24 state.gpr.W24.dword
+#define REG_W25 state.gpr.W25.dword
+#define REG_W26 state.gpr.W26.dword
+#define REG_W27 state.gpr.W27.dword
+#define REG_W28 state.gpr.W28.dword
+#define REG_W29 state.gpr.W29.dword
+#define REG_W3 state.gpr.W3.dword
+#define REG_W30 state.gpr.W30.dword
+#define REG_W31 state.gpr.W31.dword
+#define REG_W4 state.gpr.W4.dword
+#define REG_W5 state.gpr.W5.dword
+#define REG_W6 state.gpr.W6.dword
+#define REG_W7 state.gpr.W7.dword
+#define REG_W8 state.gpr.W8.dword
+#define REG_W9 state.gpr.W9.dword
+#define REG_ZERO state.gpr.ZERO.dword
+#define REG_ZERO_64 state.gpr.ZERO_64.dword
 #else
-  #define REG_A0 state.gpr.A0.qword
-  #define REG_A0_64 state.gpr.A0_64.qword
-  #define REG_A1 state.gpr.A1.qword
-  #define REG_A1_64 state.gpr.A1_64.qword
-  #define REG_A2 state.gpr.A2.qword
-  #define REG_A2_64 state.gpr.A2_64.qword
-  #define REG_A3 state.gpr.A3.qword
-  #define REG_A3_64 state.gpr.A3_64.qword
-  #define REG_AC0 state.gpr.AC0.qword
-  #define REG_AC0_64 state.gpr.AC0_64.qword
-  #define REG_AC1 state.gpr.AC1.qword
-  #define REG_AC2 state.gpr.AC2.qword
-  #define REG_AC3 state.gpr.AC3.qword
-  #define REG_AT state.gpr.AT.qword
-  #define REG_AT_64 state.gpr.AT_64.qword
-  #define REG_COP00 state.gpr.COP00.qword
-  #define REG_COP01 state.gpr.COP01.qword
-  #define REG_COP010 state.gpr.COP010.qword
-  #define REG_COP011 state.gpr.COP011.qword
-  #define REG_COP012 state.gpr.COP012.qword
-  #define REG_COP013 state.gpr.COP013.qword
-  #define REG_COP014 state.gpr.COP014.qword
-  #define REG_COP015 state.gpr.COP015.qword
-  #define REG_COP016 state.gpr.COP016.qword
-  #define REG_COP017 state.gpr.COP017.qword
-  #define REG_COP018 state.gpr.COP018.qword
-  #define REG_COP019 state.gpr.COP019.qword
-  #define REG_COP02 state.gpr.COP02.qword
-  #define REG_COP020 state.gpr.COP020.qword
-  #define REG_COP021 state.gpr.COP021.qword
-  #define REG_COP022 state.gpr.COP022.qword
-  #define REG_COP023 state.gpr.COP023.qword
-  #define REG_COP024 state.gpr.COP024.qword
-  #define REG_COP025 state.gpr.COP025.qword
-  #define REG_COP026 state.gpr.COP026.qword
-  #define REG_COP027 state.gpr.COP027.qword
-  #define REG_COP028 state.gpr.COP028.qword
-  #define REG_COP029 state.gpr.COP029.qword
-  #define REG_COP03 state.gpr.COP03.qword
-  #define REG_COP030 state.gpr.COP030.qword
-  #define REG_COP031 state.gpr.COP031.qword
-  #define REG_COP04 state.gpr.COP04.qword
-  #define REG_COP05 state.gpr.COP05.qword
-  #define REG_COP06 state.gpr.COP06.qword
-  #define REG_COP07 state.gpr.COP07.qword
-  #define REG_COP08 state.gpr.COP08.qword
-  #define REG_COP09 state.gpr.COP09.qword
-  #define REG_COP20 state.gpr.COP20.qword
-  #define REG_COP21 state.gpr.COP21.qword
-  #define REG_COP210 state.gpr.COP210.qword
-  #define REG_COP211 state.gpr.COP211.qword
-  #define REG_COP212 state.gpr.COP212.qword
-  #define REG_COP213 state.gpr.COP213.qword
-  #define REG_COP214 state.gpr.COP214.qword
-  #define REG_COP215 state.gpr.COP215.qword
-  #define REG_COP216 state.gpr.COP216.qword
-  #define REG_COP217 state.gpr.COP217.qword
-  #define REG_COP218 state.gpr.COP218.qword
-  #define REG_COP219 state.gpr.COP219.qword
-  #define REG_COP22 state.gpr.COP22.qword
-  #define REG_COP220 state.gpr.COP220.qword
-  #define REG_COP221 state.gpr.COP221.qword
-  #define REG_COP222 state.gpr.COP222.qword
-  #define REG_COP223 state.gpr.COP223.qword
-  #define REG_COP224 state.gpr.COP224.qword
-  #define REG_COP225 state.gpr.COP225.qword
-  #define REG_COP226 state.gpr.COP226.qword
-  #define REG_COP227 state.gpr.COP227.qword
-  #define REG_COP228 state.gpr.COP228.qword
-  #define REG_COP229 state.gpr.COP229.qword
-  #define REG_COP23 state.gpr.COP23.qword
-  #define REG_COP230 state.gpr.COP230.qword
-  #define REG_COP231 state.gpr.COP231.qword
-  #define REG_COP24 state.gpr.COP24.qword
-  #define REG_COP25 state.gpr.COP25.qword
-  #define REG_COP26 state.gpr.COP26.qword
-  #define REG_COP27 state.gpr.COP27.qword
-  #define REG_COP28 state.gpr.COP28.qword
-  #define REG_COP29 state.gpr.COP29.qword
-  #define REG_COP30 state.gpr.COP30.qword
-  #define REG_COP31 state.gpr.COP31.qword
-  #define REG_COP310 state.gpr.COP310.qword
-  #define REG_COP311 state.gpr.COP311.qword
-  #define REG_COP312 state.gpr.COP312.qword
-  #define REG_COP313 state.gpr.COP313.qword
-  #define REG_COP314 state.gpr.COP314.qword
-  #define REG_COP315 state.gpr.COP315.qword
-  #define REG_COP316 state.gpr.COP316.qword
-  #define REG_COP317 state.gpr.COP317.qword
-  #define REG_COP318 state.gpr.COP318.qword
-  #define REG_COP319 state.gpr.COP319.qword
-  #define REG_COP32 state.gpr.COP32.qword
-  #define REG_COP320 state.gpr.COP320.qword
-  #define REG_COP321 state.gpr.COP321.qword
-  #define REG_COP322 state.gpr.COP322.qword
-  #define REG_COP323 state.gpr.COP323.qword
-  #define REG_COP324 state.gpr.COP324.qword
-  #define REG_COP325 state.gpr.COP325.qword
-  #define REG_COP326 state.gpr.COP326.qword
-  #define REG_COP327 state.gpr.COP327.qword
-  #define REG_COP328 state.gpr.COP328.qword
-  #define REG_COP329 state.gpr.COP329.qword
-  #define REG_COP33 state.gpr.COP33.qword
-  #define REG_COP330 state.gpr.COP330.qword
-  #define REG_COP331 state.gpr.COP331.qword
-  #define REG_COP34 state.gpr.COP34.qword
-  #define REG_COP35 state.gpr.COP35.qword
-  #define REG_COP36 state.gpr.COP36.qword
-  #define REG_COP37 state.gpr.COP37.qword
-  #define REG_COP38 state.gpr.COP38.qword
-  #define REG_COP39 state.gpr.COP39.qword
-  #define REG_D0 state.gpr.D0.qword
-  #define REG_D0_64 state.gpr.D0_64.qword
-  #define REG_D1 state.gpr.D1.qword
-  #define REG_D10 state.gpr.D10.qword
-  #define REG_D10_64 state.gpr.D10_64.qword
-  #define REG_D11 state.gpr.D11.qword
-  #define REG_D11_64 state.gpr.D11_64.qword
-  #define REG_D12 state.gpr.D12.qword
-  #define REG_D12_64 state.gpr.D12_64.qword
-  #define REG_D13 state.gpr.D13.qword
-  #define REG_D13_64 state.gpr.D13_64.qword
-  #define REG_D14 state.gpr.D14.qword
-  #define REG_D14_64 state.gpr.D14_64.qword
-  #define REG_D15 state.gpr.D15.qword
-  #define REG_D15_64 state.gpr.D15_64.qword
-  #define REG_D16_64 state.gpr.D16_64.qword
-  #define REG_D17_64 state.gpr.D17_64.qword
-  #define REG_D18_64 state.gpr.D18_64.qword
-  #define REG_D19_64 state.gpr.D19_64.qword
-  #define REG_D1_64 state.gpr.D1_64.qword
-  #define REG_D2 state.gpr.D2.qword
-  #define REG_D20_64 state.gpr.D20_64.qword
-  #define REG_D21_64 state.gpr.D21_64.qword
-  #define REG_D22_64 state.gpr.D22_64.qword
-  #define REG_D23_64 state.gpr.D23_64.qword
-  #define REG_D24_64 state.gpr.D24_64.qword
-  #define REG_D25_64 state.gpr.D25_64.qword
-  #define REG_D26_64 state.gpr.D26_64.qword
-  #define REG_D27_64 state.gpr.D27_64.qword
-  #define REG_D28_64 state.gpr.D28_64.qword
-  #define REG_D29_64 state.gpr.D29_64.qword
-  #define REG_D2_64 state.gpr.D2_64.qword
-  #define REG_D3 state.gpr.D3.qword
-  #define REG_D30_64 state.gpr.D30_64.qword
-  #define REG_D31_64 state.gpr.D31_64.qword
-  #define REG_D3_64 state.gpr.D3_64.qword
-  #define REG_D4 state.gpr.D4.qword
-  #define REG_D4_64 state.gpr.D4_64.qword
-  #define REG_D5 state.gpr.D5.qword
-  #define REG_D5_64 state.gpr.D5_64.qword
-  #define REG_D6 state.gpr.D6.qword
-  #define REG_D6_64 state.gpr.D6_64.qword
-  #define REG_D7 state.gpr.D7.qword
-  #define REG_D7_64 state.gpr.D7_64.qword
-  #define REG_D8 state.gpr.D8.qword
-  #define REG_D8_64 state.gpr.D8_64.qword
-  #define REG_D9 state.gpr.D9.qword
-  #define REG_D9_64 state.gpr.D9_64.qword
-  #define REG_DSPCCond state.gpr.DSPCCond.qword
-  #define REG_DSPCarry state.gpr.DSPCarry.qword
-  #define REG_DSPEFI state.gpr.DSPEFI.qword
-  #define REG_DSPOutFlag state.gpr.DSPOutFlag.qword
-  #define REG_DSPOutFlag16_19 state.gpr.DSPOutFlag16_19.qword
-  #define REG_DSPOutFlag20 state.gpr.DSPOutFlag20.qword
-  #define REG_DSPOutFlag21 state.gpr.DSPOutFlag21.qword
-  #define REG_DSPOutFlag22 state.gpr.DSPOutFlag22.qword
-  #define REG_DSPOutFlag23 state.gpr.DSPOutFlag23.qword
-  #define REG_DSPPos state.gpr.DSPPos.qword
-  #define REG_DSPSCount state.gpr.DSPSCount.qword
-  #define REG_F0 state.gpr.F0.qword
-  #define REG_F1 state.gpr.F1.qword
-  #define REG_F10 state.gpr.F10.qword
-  #define REG_F11 state.gpr.F11.qword
-  #define REG_F12 state.gpr.F12.qword
-  #define REG_F13 state.gpr.F13.qword
-  #define REG_F14 state.gpr.F14.qword
-  #define REG_F15 state.gpr.F15.qword
-  #define REG_F16 state.gpr.F16.qword
-  #define REG_F17 state.gpr.F17.qword
-  #define REG_F18 state.gpr.F18.qword
-  #define REG_F19 state.gpr.F19.qword
-  #define REG_F2 state.gpr.F2.qword
-  #define REG_F20 state.gpr.F20.qword
-  #define REG_F21 state.gpr.F21.qword
-  #define REG_F22 state.gpr.F22.qword
-  #define REG_F23 state.gpr.F23.qword
-  #define REG_F24 state.gpr.F24.qword
-  #define REG_F25 state.gpr.F25.qword
-  #define REG_F26 state.gpr.F26.qword
-  #define REG_F27 state.gpr.F27.qword
-  #define REG_F28 state.gpr.F28.qword
-  #define REG_F29 state.gpr.F29.qword
-  #define REG_F3 state.gpr.F3.qword
-  #define REG_F30 state.gpr.F30.qword
-  #define REG_F31 state.gpr.F31.qword
-  #define REG_F4 state.gpr.F4.qword
-  #define REG_F5 state.gpr.F5.qword
-  #define REG_F6 state.gpr.F6.qword
-  #define REG_F7 state.gpr.F7.qword
-  #define REG_F8 state.gpr.F8.qword
-  #define REG_F9 state.gpr.F9.qword
-  #define REG_FCC0 state.gpr.FCC0.qword
-  #define REG_FCC1 state.gpr.FCC1.qword
-  #define REG_FCC2 state.gpr.FCC2.qword
-  #define REG_FCC3 state.gpr.FCC3.qword
-  #define REG_FCC4 state.gpr.FCC4.qword
-  #define REG_FCC5 state.gpr.FCC5.qword
-  #define REG_FCC6 state.gpr.FCC6.qword
-  #define REG_FCC7 state.gpr.FCC7.qword
-  #define REG_FCR0 state.gpr.FCR0.qword
-  #define REG_FCR1 state.gpr.FCR1.qword
-  #define REG_FCR10 state.gpr.FCR10.qword
-  #define REG_FCR11 state.gpr.FCR11.qword
-  #define REG_FCR12 state.gpr.FCR12.qword
-  #define REG_FCR13 state.gpr.FCR13.qword
-  #define REG_FCR14 state.gpr.FCR14.qword
-  #define REG_FCR15 state.gpr.FCR15.qword
-  #define REG_FCR16 state.gpr.FCR16.qword
-  #define REG_FCR17 state.gpr.FCR17.qword
-  #define REG_FCR18 state.gpr.FCR18.qword
-  #define REG_FCR19 state.gpr.FCR19.qword
-  #define REG_FCR2 state.gpr.FCR2.qword
-  #define REG_FCR20 state.gpr.FCR20.qword
-  #define REG_FCR21 state.gpr.FCR21.qword
-  #define REG_FCR22 state.gpr.FCR22.qword
-  #define REG_FCR23 state.gpr.FCR23.qword
-  #define REG_FCR24 state.gpr.FCR24.qword
-  #define REG_FCR25 state.gpr.FCR25.qword
-  #define REG_FCR26 state.gpr.FCR26.qword
-  #define REG_FCR27 state.gpr.FCR27.qword
-  #define REG_FCR28 state.gpr.FCR28.qword
-  #define REG_FCR29 state.gpr.FCR29.qword
-  #define REG_FCR3 state.gpr.FCR3.qword
-  #define REG_FCR30 state.gpr.FCR30.qword
-  #define REG_FCR31 state.gpr.FCR31.qword
-  #define REG_FCR4 state.gpr.FCR4.qword
-  #define REG_FCR5 state.gpr.FCR5.qword
-  #define REG_FCR6 state.gpr.FCR6.qword
-  #define REG_FCR7 state.gpr.FCR7.qword
-  #define REG_FCR8 state.gpr.FCR8.qword
-  #define REG_FCR9 state.gpr.FCR9.qword
-  #define REG_FP state.gpr.FP.qword
-  #define REG_FP_64 state.gpr.FP_64.qword
-  #define REG_F_HI0 state.gpr.F_HI0.qword
-  #define REG_F_HI1 state.gpr.F_HI1.qword
-  #define REG_F_HI10 state.gpr.F_HI10.qword
-  #define REG_F_HI11 state.gpr.F_HI11.qword
-  #define REG_F_HI12 state.gpr.F_HI12.qword
-  #define REG_F_HI13 state.gpr.F_HI13.qword
-  #define REG_F_HI14 state.gpr.F_HI14.qword
-  #define REG_F_HI15 state.gpr.F_HI15.qword
-  #define REG_F_HI16 state.gpr.F_HI16.qword
-  #define REG_F_HI17 state.gpr.F_HI17.qword
-  #define REG_F_HI18 state.gpr.F_HI18.qword
-  #define REG_F_HI19 state.gpr.F_HI19.qword
-  #define REG_F_HI2 state.gpr.F_HI2.qword
-  #define REG_F_HI20 state.gpr.F_HI20.qword
-  #define REG_F_HI21 state.gpr.F_HI21.qword
-  #define REG_F_HI22 state.gpr.F_HI22.qword
-  #define REG_F_HI23 state.gpr.F_HI23.qword
-  #define REG_F_HI24 state.gpr.F_HI24.qword
-  #define REG_F_HI25 state.gpr.F_HI25.qword
-  #define REG_F_HI26 state.gpr.F_HI26.qword
-  #define REG_F_HI27 state.gpr.F_HI27.qword
-  #define REG_F_HI28 state.gpr.F_HI28.qword
-  #define REG_F_HI29 state.gpr.F_HI29.qword
-  #define REG_F_HI3 state.gpr.F_HI3.qword
-  #define REG_F_HI30 state.gpr.F_HI30.qword
-  #define REG_F_HI31 state.gpr.F_HI31.qword
-  #define REG_F_HI4 state.gpr.F_HI4.qword
-  #define REG_F_HI5 state.gpr.F_HI5.qword
-  #define REG_F_HI6 state.gpr.F_HI6.qword
-  #define REG_F_HI7 state.gpr.F_HI7.qword
-  #define REG_F_HI8 state.gpr.F_HI8.qword
-  #define REG_F_HI9 state.gpr.F_HI9.qword
-  #define REG_GP state.gpr.GP.qword
-  #define REG_GP_64 state.gpr.GP_64.qword
-  #define REG_HI0 state.gpr.HI0.qword
-  #define REG_HI0_64 state.gpr.HI0_64.qword
-  #define REG_HI1 state.gpr.HI1.qword
-  #define REG_HI2 state.gpr.HI2.qword
-  #define REG_HI3 state.gpr.HI3.qword
-  #define REG_HWR0 state.gpr.HWR0.qword
-  #define REG_HWR1 state.gpr.HWR1.qword
-  #define REG_HWR10 state.gpr.HWR10.qword
-  #define REG_HWR11 state.gpr.HWR11.qword
-  #define REG_HWR12 state.gpr.HWR12.qword
-  #define REG_HWR13 state.gpr.HWR13.qword
-  #define REG_HWR14 state.gpr.HWR14.qword
-  #define REG_HWR15 state.gpr.HWR15.qword
-  #define REG_HWR16 state.gpr.HWR16.qword
-  #define REG_HWR17 state.gpr.HWR17.qword
-  #define REG_HWR18 state.gpr.HWR18.qword
-  #define REG_HWR19 state.gpr.HWR19.qword
-  #define REG_HWR2 state.gpr.HWR2.qword
-  #define REG_HWR20 state.gpr.HWR20.qword
-  #define REG_HWR21 state.gpr.HWR21.qword
-  #define REG_HWR22 state.gpr.HWR22.qword
-  #define REG_HWR23 state.gpr.HWR23.qword
-  #define REG_HWR24 state.gpr.HWR24.qword
-  #define REG_HWR25 state.gpr.HWR25.qword
-  #define REG_HWR26 state.gpr.HWR26.qword
-  #define REG_HWR27 state.gpr.HWR27.qword
-  #define REG_HWR28 state.gpr.HWR28.qword
-  #define REG_HWR29 state.gpr.HWR29.qword
-  #define REG_HWR3 state.gpr.HWR3.qword
-  #define REG_HWR30 state.gpr.HWR30.qword
-  #define REG_HWR31 state.gpr.HWR31.qword
-  #define REG_HWR4 state.gpr.HWR4.qword
-  #define REG_HWR5 state.gpr.HWR5.qword
-  #define REG_HWR6 state.gpr.HWR6.qword
-  #define REG_HWR7 state.gpr.HWR7.qword
-  #define REG_HWR8 state.gpr.HWR8.qword
-  #define REG_HWR9 state.gpr.HWR9.qword
-  #define REG_K0 state.gpr.K0.qword
-  #define REG_K0_64 state.gpr.K0_64.qword
-  #define REG_K1 state.gpr.K1.qword
-  #define REG_K1_64 state.gpr.K1_64.qword
-  #define REG_LO0 state.gpr.LO0.qword
-  #define REG_LO0_64 state.gpr.LO0_64.qword
-  #define REG_LO1 state.gpr.LO1.qword
-  #define REG_LO2 state.gpr.LO2.qword
-  #define REG_LO3 state.gpr.LO3.qword
-  #define REG_MPL0 state.gpr.MPL0.qword
-  #define REG_MPL1 state.gpr.MPL1.qword
-  #define REG_MPL2 state.gpr.MPL2.qword
-  #define REG_MSAAccess state.gpr.MSAAccess.qword
-  #define REG_MSACSR state.gpr.MSACSR.qword
-  #define REG_MSAIR state.gpr.MSAIR.qword
-  #define REG_MSAMap state.gpr.MSAMap.qword
-  #define REG_MSAModify state.gpr.MSAModify.qword
-  #define REG_MSARequest state.gpr.MSARequest.qword
-  #define REG_MSASave state.gpr.MSASave.qword
-  #define REG_MSAUnmap state.gpr.MSAUnmap.qword
-  #define REG_P0 state.gpr.P0.qword
-  #define REG_P1 state.gpr.P1.qword
-  #define REG_P2 state.gpr.P2.qword
-  #define REG_PC state.gpr.PC.qword
-  #define REG_RA state.gpr.RA.qword
-  #define REG_RA_64 state.gpr.RA_64.qword
-  #define REG_S0 state.gpr.S0.qword
-  #define REG_S0_64 state.gpr.S0_64.qword
-  #define REG_S1 state.gpr.S1.qword
-  #define REG_S1_64 state.gpr.S1_64.qword
-  #define REG_S2 state.gpr.S2.qword
-  #define REG_S2_64 state.gpr.S2_64.qword
-  #define REG_S3 state.gpr.S3.qword
-  #define REG_S3_64 state.gpr.S3_64.qword
-  #define REG_S4 state.gpr.S4.qword
-  #define REG_S4_64 state.gpr.S4_64.qword
-  #define REG_S5 state.gpr.S5.qword
-  #define REG_S5_64 state.gpr.S5_64.qword
-  #define REG_S6 state.gpr.S6.qword
-  #define REG_S6_64 state.gpr.S6_64.qword
-  #define REG_S7 state.gpr.S7.qword
-  #define REG_S7_64 state.gpr.S7_64.qword
-  #define REG_SP state.gpr.SP.qword
-  #define REG_SP_64 state.gpr.SP_64.qword
-  #define REG_T0 state.gpr.T0.qword
-  #define REG_T0_64 state.gpr.T0_64.qword
-  #define REG_T1 state.gpr.T1.qword
-  #define REG_T1_64 state.gpr.T1_64.qword
-  #define REG_T2 state.gpr.T2.qword
-  #define REG_T2_64 state.gpr.T2_64.qword
-  #define REG_T3 state.gpr.T3.qword
-  #define REG_T3_64 state.gpr.T3_64.qword
-  #define REG_T4 state.gpr.T4.qword
-  #define REG_T4_64 state.gpr.T4_64.qword
-  #define REG_T5 state.gpr.T5.qword
-  #define REG_T5_64 state.gpr.T5_64.qword
-  #define REG_T6 state.gpr.T6.qword
-  #define REG_T6_64 state.gpr.T6_64.qword
-  #define REG_T7 state.gpr.T7.qword
-  #define REG_T7_64 state.gpr.T7_64.qword
-  #define REG_T8 state.gpr.T8.qword
-  #define REG_T8_64 state.gpr.T8_64.qword
-  #define REG_T9 state.gpr.T9.qword
-  #define REG_T9_64 state.gpr.T9_64.qword
-  #define REG_V0 state.gpr.V0.qword
-  #define REG_V0_64 state.gpr.V0_64.qword
-  #define REG_V1 state.gpr.V1.qword
-  #define REG_V1_64 state.gpr.V1_64.qword
-  #define REG_W0 state.gpr.W0.qword
-  #define REG_W1 state.gpr.W1.qword
-  #define REG_W10 state.gpr.W10.qword
-  #define REG_W11 state.gpr.W11.qword
-  #define REG_W12 state.gpr.W12.qword
-  #define REG_W13 state.gpr.W13.qword
-  #define REG_W14 state.gpr.W14.qword
-  #define REG_W15 state.gpr.W15.qword
-  #define REG_W16 state.gpr.W16.qword
-  #define REG_W17 state.gpr.W17.qword
-  #define REG_W18 state.gpr.W18.qword
-  #define REG_W19 state.gpr.W19.qword
-  #define REG_W2 state.gpr.W2.qword
-  #define REG_W20 state.gpr.W20.qword
-  #define REG_W21 state.gpr.W21.qword
-  #define REG_W22 state.gpr.W22.qword
-  #define REG_W23 state.gpr.W23.qword
-  #define REG_W24 state.gpr.W24.qword
-  #define REG_W25 state.gpr.W25.qword
-  #define REG_W26 state.gpr.W26.qword
-  #define REG_W27 state.gpr.W27.qword
-  #define REG_W28 state.gpr.W28.qword
-  #define REG_W29 state.gpr.W29.qword
-  #define REG_W3 state.gpr.W3.qword
-  #define REG_W30 state.gpr.W30.qword
-  #define REG_W31 state.gpr.W31.qword
-  #define REG_W4 state.gpr.W4.qword
-  #define REG_W5 state.gpr.W5.qword
-  #define REG_W6 state.gpr.W6.qword
-  #define REG_W7 state.gpr.W7.qword
-  #define REG_W8 state.gpr.W8.qword
-  #define REG_W9 state.gpr.W9.qword
-  #define REG_ZERO state.gpr.ZERO.qword
-  #define REG_ZERO_64 state.gpr.ZERO_64.qword
+#define REG_A0 state.gpr.A0.qword
+#define REG_A0_64 state.gpr.A0_64.qword
+#define REG_A1 state.gpr.A1.qword
+#define REG_A1_64 state.gpr.A1_64.qword
+#define REG_A2 state.gpr.A2.qword
+#define REG_A2_64 state.gpr.A2_64.qword
+#define REG_A3 state.gpr.A3.qword
+#define REG_A3_64 state.gpr.A3_64.qword
+#define REG_AC0 state.gpr.AC0.qword
+#define REG_AC0_64 state.gpr.AC0_64.qword
+#define REG_AC1 state.gpr.AC1.qword
+#define REG_AC2 state.gpr.AC2.qword
+#define REG_AC3 state.gpr.AC3.qword
+#define REG_AT state.gpr.AT.qword
+#define REG_AT_64 state.gpr.AT_64.qword
+#define REG_COP00 state.gpr.COP00.qword
+#define REG_COP01 state.gpr.COP01.qword
+#define REG_COP010 state.gpr.COP010.qword
+#define REG_COP011 state.gpr.COP011.qword
+#define REG_COP012 state.gpr.COP012.qword
+#define REG_COP013 state.gpr.COP013.qword
+#define REG_COP014 state.gpr.COP014.qword
+#define REG_COP015 state.gpr.COP015.qword
+#define REG_COP016 state.gpr.COP016.qword
+#define REG_COP017 state.gpr.COP017.qword
+#define REG_COP018 state.gpr.COP018.qword
+#define REG_COP019 state.gpr.COP019.qword
+#define REG_COP02 state.gpr.COP02.qword
+#define REG_COP020 state.gpr.COP020.qword
+#define REG_COP021 state.gpr.COP021.qword
+#define REG_COP022 state.gpr.COP022.qword
+#define REG_COP023 state.gpr.COP023.qword
+#define REG_COP024 state.gpr.COP024.qword
+#define REG_COP025 state.gpr.COP025.qword
+#define REG_COP026 state.gpr.COP026.qword
+#define REG_COP027 state.gpr.COP027.qword
+#define REG_COP028 state.gpr.COP028.qword
+#define REG_COP029 state.gpr.COP029.qword
+#define REG_COP03 state.gpr.COP03.qword
+#define REG_COP030 state.gpr.COP030.qword
+#define REG_COP031 state.gpr.COP031.qword
+#define REG_COP04 state.gpr.COP04.qword
+#define REG_COP05 state.gpr.COP05.qword
+#define REG_COP06 state.gpr.COP06.qword
+#define REG_COP07 state.gpr.COP07.qword
+#define REG_COP08 state.gpr.COP08.qword
+#define REG_COP09 state.gpr.COP09.qword
+#define REG_COP20 state.gpr.COP20.qword
+#define REG_COP21 state.gpr.COP21.qword
+#define REG_COP210 state.gpr.COP210.qword
+#define REG_COP211 state.gpr.COP211.qword
+#define REG_COP212 state.gpr.COP212.qword
+#define REG_COP213 state.gpr.COP213.qword
+#define REG_COP214 state.gpr.COP214.qword
+#define REG_COP215 state.gpr.COP215.qword
+#define REG_COP216 state.gpr.COP216.qword
+#define REG_COP217 state.gpr.COP217.qword
+#define REG_COP218 state.gpr.COP218.qword
+#define REG_COP219 state.gpr.COP219.qword
+#define REG_COP22 state.gpr.COP22.qword
+#define REG_COP220 state.gpr.COP220.qword
+#define REG_COP221 state.gpr.COP221.qword
+#define REG_COP222 state.gpr.COP222.qword
+#define REG_COP223 state.gpr.COP223.qword
+#define REG_COP224 state.gpr.COP224.qword
+#define REG_COP225 state.gpr.COP225.qword
+#define REG_COP226 state.gpr.COP226.qword
+#define REG_COP227 state.gpr.COP227.qword
+#define REG_COP228 state.gpr.COP228.qword
+#define REG_COP229 state.gpr.COP229.qword
+#define REG_COP23 state.gpr.COP23.qword
+#define REG_COP230 state.gpr.COP230.qword
+#define REG_COP231 state.gpr.COP231.qword
+#define REG_COP24 state.gpr.COP24.qword
+#define REG_COP25 state.gpr.COP25.qword
+#define REG_COP26 state.gpr.COP26.qword
+#define REG_COP27 state.gpr.COP27.qword
+#define REG_COP28 state.gpr.COP28.qword
+#define REG_COP29 state.gpr.COP29.qword
+#define REG_COP30 state.gpr.COP30.qword
+#define REG_COP31 state.gpr.COP31.qword
+#define REG_COP310 state.gpr.COP310.qword
+#define REG_COP311 state.gpr.COP311.qword
+#define REG_COP312 state.gpr.COP312.qword
+#define REG_COP313 state.gpr.COP313.qword
+#define REG_COP314 state.gpr.COP314.qword
+#define REG_COP315 state.gpr.COP315.qword
+#define REG_COP316 state.gpr.COP316.qword
+#define REG_COP317 state.gpr.COP317.qword
+#define REG_COP318 state.gpr.COP318.qword
+#define REG_COP319 state.gpr.COP319.qword
+#define REG_COP32 state.gpr.COP32.qword
+#define REG_COP320 state.gpr.COP320.qword
+#define REG_COP321 state.gpr.COP321.qword
+#define REG_COP322 state.gpr.COP322.qword
+#define REG_COP323 state.gpr.COP323.qword
+#define REG_COP324 state.gpr.COP324.qword
+#define REG_COP325 state.gpr.COP325.qword
+#define REG_COP326 state.gpr.COP326.qword
+#define REG_COP327 state.gpr.COP327.qword
+#define REG_COP328 state.gpr.COP328.qword
+#define REG_COP329 state.gpr.COP329.qword
+#define REG_COP33 state.gpr.COP33.qword
+#define REG_COP330 state.gpr.COP330.qword
+#define REG_COP331 state.gpr.COP331.qword
+#define REG_COP34 state.gpr.COP34.qword
+#define REG_COP35 state.gpr.COP35.qword
+#define REG_COP36 state.gpr.COP36.qword
+#define REG_COP37 state.gpr.COP37.qword
+#define REG_COP38 state.gpr.COP38.qword
+#define REG_COP39 state.gpr.COP39.qword
+#define REG_D0 state.gpr.D0.qword
+#define REG_D0_64 state.gpr.D0_64.qword
+#define REG_D1 state.gpr.D1.qword
+#define REG_D10 state.gpr.D10.qword
+#define REG_D10_64 state.gpr.D10_64.qword
+#define REG_D11 state.gpr.D11.qword
+#define REG_D11_64 state.gpr.D11_64.qword
+#define REG_D12 state.gpr.D12.qword
+#define REG_D12_64 state.gpr.D12_64.qword
+#define REG_D13 state.gpr.D13.qword
+#define REG_D13_64 state.gpr.D13_64.qword
+#define REG_D14 state.gpr.D14.qword
+#define REG_D14_64 state.gpr.D14_64.qword
+#define REG_D15 state.gpr.D15.qword
+#define REG_D15_64 state.gpr.D15_64.qword
+#define REG_D16_64 state.gpr.D16_64.qword
+#define REG_D17_64 state.gpr.D17_64.qword
+#define REG_D18_64 state.gpr.D18_64.qword
+#define REG_D19_64 state.gpr.D19_64.qword
+#define REG_D1_64 state.gpr.D1_64.qword
+#define REG_D2 state.gpr.D2.qword
+#define REG_D20_64 state.gpr.D20_64.qword
+#define REG_D21_64 state.gpr.D21_64.qword
+#define REG_D22_64 state.gpr.D22_64.qword
+#define REG_D23_64 state.gpr.D23_64.qword
+#define REG_D24_64 state.gpr.D24_64.qword
+#define REG_D25_64 state.gpr.D25_64.qword
+#define REG_D26_64 state.gpr.D26_64.qword
+#define REG_D27_64 state.gpr.D27_64.qword
+#define REG_D28_64 state.gpr.D28_64.qword
+#define REG_D29_64 state.gpr.D29_64.qword
+#define REG_D2_64 state.gpr.D2_64.qword
+#define REG_D3 state.gpr.D3.qword
+#define REG_D30_64 state.gpr.D30_64.qword
+#define REG_D31_64 state.gpr.D31_64.qword
+#define REG_D3_64 state.gpr.D3_64.qword
+#define REG_D4 state.gpr.D4.qword
+#define REG_D4_64 state.gpr.D4_64.qword
+#define REG_D5 state.gpr.D5.qword
+#define REG_D5_64 state.gpr.D5_64.qword
+#define REG_D6 state.gpr.D6.qword
+#define REG_D6_64 state.gpr.D6_64.qword
+#define REG_D7 state.gpr.D7.qword
+#define REG_D7_64 state.gpr.D7_64.qword
+#define REG_D8 state.gpr.D8.qword
+#define REG_D8_64 state.gpr.D8_64.qword
+#define REG_D9 state.gpr.D9.qword
+#define REG_D9_64 state.gpr.D9_64.qword
+#define REG_DSPCCond state.gpr.DSPCCond.qword
+#define REG_DSPCarry state.gpr.DSPCarry.qword
+#define REG_DSPEFI state.gpr.DSPEFI.qword
+#define REG_DSPOutFlag state.gpr.DSPOutFlag.qword
+#define REG_DSPOutFlag16_19 state.gpr.DSPOutFlag16_19.qword
+#define REG_DSPOutFlag20 state.gpr.DSPOutFlag20.qword
+#define REG_DSPOutFlag21 state.gpr.DSPOutFlag21.qword
+#define REG_DSPOutFlag22 state.gpr.DSPOutFlag22.qword
+#define REG_DSPOutFlag23 state.gpr.DSPOutFlag23.qword
+#define REG_DSPPos state.gpr.DSPPos.qword
+#define REG_DSPSCount state.gpr.DSPSCount.qword
+#define REG_F0 state.gpr.F0.qword
+#define REG_F1 state.gpr.F1.qword
+#define REG_F10 state.gpr.F10.qword
+#define REG_F11 state.gpr.F11.qword
+#define REG_F12 state.gpr.F12.qword
+#define REG_F13 state.gpr.F13.qword
+#define REG_F14 state.gpr.F14.qword
+#define REG_F15 state.gpr.F15.qword
+#define REG_F16 state.gpr.F16.qword
+#define REG_F17 state.gpr.F17.qword
+#define REG_F18 state.gpr.F18.qword
+#define REG_F19 state.gpr.F19.qword
+#define REG_F2 state.gpr.F2.qword
+#define REG_F20 state.gpr.F20.qword
+#define REG_F21 state.gpr.F21.qword
+#define REG_F22 state.gpr.F22.qword
+#define REG_F23 state.gpr.F23.qword
+#define REG_F24 state.gpr.F24.qword
+#define REG_F25 state.gpr.F25.qword
+#define REG_F26 state.gpr.F26.qword
+#define REG_F27 state.gpr.F27.qword
+#define REG_F28 state.gpr.F28.qword
+#define REG_F29 state.gpr.F29.qword
+#define REG_F3 state.gpr.F3.qword
+#define REG_F30 state.gpr.F30.qword
+#define REG_F31 state.gpr.F31.qword
+#define REG_F4 state.gpr.F4.qword
+#define REG_F5 state.gpr.F5.qword
+#define REG_F6 state.gpr.F6.qword
+#define REG_F7 state.gpr.F7.qword
+#define REG_F8 state.gpr.F8.qword
+#define REG_F9 state.gpr.F9.qword
+#define REG_FCC0 state.gpr.FCC0.qword
+#define REG_FCC1 state.gpr.FCC1.qword
+#define REG_FCC2 state.gpr.FCC2.qword
+#define REG_FCC3 state.gpr.FCC3.qword
+#define REG_FCC4 state.gpr.FCC4.qword
+#define REG_FCC5 state.gpr.FCC5.qword
+#define REG_FCC6 state.gpr.FCC6.qword
+#define REG_FCC7 state.gpr.FCC7.qword
+#define REG_FCR0 state.gpr.FCR0.qword
+#define REG_FCR1 state.gpr.FCR1.qword
+#define REG_FCR10 state.gpr.FCR10.qword
+#define REG_FCR11 state.gpr.FCR11.qword
+#define REG_FCR12 state.gpr.FCR12.qword
+#define REG_FCR13 state.gpr.FCR13.qword
+#define REG_FCR14 state.gpr.FCR14.qword
+#define REG_FCR15 state.gpr.FCR15.qword
+#define REG_FCR16 state.gpr.FCR16.qword
+#define REG_FCR17 state.gpr.FCR17.qword
+#define REG_FCR18 state.gpr.FCR18.qword
+#define REG_FCR19 state.gpr.FCR19.qword
+#define REG_FCR2 state.gpr.FCR2.qword
+#define REG_FCR20 state.gpr.FCR20.qword
+#define REG_FCR21 state.gpr.FCR21.qword
+#define REG_FCR22 state.gpr.FCR22.qword
+#define REG_FCR23 state.gpr.FCR23.qword
+#define REG_FCR24 state.gpr.FCR24.qword
+#define REG_FCR25 state.gpr.FCR25.qword
+#define REG_FCR26 state.gpr.FCR26.qword
+#define REG_FCR27 state.gpr.FCR27.qword
+#define REG_FCR28 state.gpr.FCR28.qword
+#define REG_FCR29 state.gpr.FCR29.qword
+#define REG_FCR3 state.gpr.FCR3.qword
+#define REG_FCR30 state.gpr.FCR30.qword
+#define REG_FCR31 state.gpr.FCR31.qword
+#define REG_FCR4 state.gpr.FCR4.qword
+#define REG_FCR5 state.gpr.FCR5.qword
+#define REG_FCR6 state.gpr.FCR6.qword
+#define REG_FCR7 state.gpr.FCR7.qword
+#define REG_FCR8 state.gpr.FCR8.qword
+#define REG_FCR9 state.gpr.FCR9.qword
+#define REG_FP state.gpr.FP.qword
+#define REG_FP_64 state.gpr.FP_64.qword
+#define REG_F_HI0 state.gpr.F_HI0.qword
+#define REG_F_HI1 state.gpr.F_HI1.qword
+#define REG_F_HI10 state.gpr.F_HI10.qword
+#define REG_F_HI11 state.gpr.F_HI11.qword
+#define REG_F_HI12 state.gpr.F_HI12.qword
+#define REG_F_HI13 state.gpr.F_HI13.qword
+#define REG_F_HI14 state.gpr.F_HI14.qword
+#define REG_F_HI15 state.gpr.F_HI15.qword
+#define REG_F_HI16 state.gpr.F_HI16.qword
+#define REG_F_HI17 state.gpr.F_HI17.qword
+#define REG_F_HI18 state.gpr.F_HI18.qword
+#define REG_F_HI19 state.gpr.F_HI19.qword
+#define REG_F_HI2 state.gpr.F_HI2.qword
+#define REG_F_HI20 state.gpr.F_HI20.qword
+#define REG_F_HI21 state.gpr.F_HI21.qword
+#define REG_F_HI22 state.gpr.F_HI22.qword
+#define REG_F_HI23 state.gpr.F_HI23.qword
+#define REG_F_HI24 state.gpr.F_HI24.qword
+#define REG_F_HI25 state.gpr.F_HI25.qword
+#define REG_F_HI26 state.gpr.F_HI26.qword
+#define REG_F_HI27 state.gpr.F_HI27.qword
+#define REG_F_HI28 state.gpr.F_HI28.qword
+#define REG_F_HI29 state.gpr.F_HI29.qword
+#define REG_F_HI3 state.gpr.F_HI3.qword
+#define REG_F_HI30 state.gpr.F_HI30.qword
+#define REG_F_HI31 state.gpr.F_HI31.qword
+#define REG_F_HI4 state.gpr.F_HI4.qword
+#define REG_F_HI5 state.gpr.F_HI5.qword
+#define REG_F_HI6 state.gpr.F_HI6.qword
+#define REG_F_HI7 state.gpr.F_HI7.qword
+#define REG_F_HI8 state.gpr.F_HI8.qword
+#define REG_F_HI9 state.gpr.F_HI9.qword
+#define REG_GP state.gpr.GP.qword
+#define REG_GP_64 state.gpr.GP_64.qword
+#define REG_HI0 state.gpr.HI0.qword
+#define REG_HI0_64 state.gpr.HI0_64.qword
+#define REG_HI1 state.gpr.HI1.qword
+#define REG_HI2 state.gpr.HI2.qword
+#define REG_HI3 state.gpr.HI3.qword
+#define REG_HWR0 state.gpr.HWR0.qword
+#define REG_HWR1 state.gpr.HWR1.qword
+#define REG_HWR10 state.gpr.HWR10.qword
+#define REG_HWR11 state.gpr.HWR11.qword
+#define REG_HWR12 state.gpr.HWR12.qword
+#define REG_HWR13 state.gpr.HWR13.qword
+#define REG_HWR14 state.gpr.HWR14.qword
+#define REG_HWR15 state.gpr.HWR15.qword
+#define REG_HWR16 state.gpr.HWR16.qword
+#define REG_HWR17 state.gpr.HWR17.qword
+#define REG_HWR18 state.gpr.HWR18.qword
+#define REG_HWR19 state.gpr.HWR19.qword
+#define REG_HWR2 state.gpr.HWR2.qword
+#define REG_HWR20 state.gpr.HWR20.qword
+#define REG_HWR21 state.gpr.HWR21.qword
+#define REG_HWR22 state.gpr.HWR22.qword
+#define REG_HWR23 state.gpr.HWR23.qword
+#define REG_HWR24 state.gpr.HWR24.qword
+#define REG_HWR25 state.gpr.HWR25.qword
+#define REG_HWR26 state.gpr.HWR26.qword
+#define REG_HWR27 state.gpr.HWR27.qword
+#define REG_HWR28 state.gpr.HWR28.qword
+#define REG_HWR29 state.gpr.HWR29.qword
+#define REG_HWR3 state.gpr.HWR3.qword
+#define REG_HWR30 state.gpr.HWR30.qword
+#define REG_HWR31 state.gpr.HWR31.qword
+#define REG_HWR4 state.gpr.HWR4.qword
+#define REG_HWR5 state.gpr.HWR5.qword
+#define REG_HWR6 state.gpr.HWR6.qword
+#define REG_HWR7 state.gpr.HWR7.qword
+#define REG_HWR8 state.gpr.HWR8.qword
+#define REG_HWR9 state.gpr.HWR9.qword
+#define REG_K0 state.gpr.K0.qword
+#define REG_K0_64 state.gpr.K0_64.qword
+#define REG_K1 state.gpr.K1.qword
+#define REG_K1_64 state.gpr.K1_64.qword
+#define REG_LO0 state.gpr.LO0.qword
+#define REG_LO0_64 state.gpr.LO0_64.qword
+#define REG_LO1 state.gpr.LO1.qword
+#define REG_LO2 state.gpr.LO2.qword
+#define REG_LO3 state.gpr.LO3.qword
+#define REG_MPL0 state.gpr.MPL0.qword
+#define REG_MPL1 state.gpr.MPL1.qword
+#define REG_MPL2 state.gpr.MPL2.qword
+#define REG_MSAAccess state.gpr.MSAAccess.qword
+#define REG_MSACSR state.gpr.MSACSR.qword
+#define REG_MSAIR state.gpr.MSAIR.qword
+#define REG_MSAMap state.gpr.MSAMap.qword
+#define REG_MSAModify state.gpr.MSAModify.qword
+#define REG_MSARequest state.gpr.MSARequest.qword
+#define REG_MSASave state.gpr.MSASave.qword
+#define REG_MSAUnmap state.gpr.MSAUnmap.qword
+#define REG_P0 state.gpr.P0.qword
+#define REG_P1 state.gpr.P1.qword
+#define REG_P2 state.gpr.P2.qword
+#define REG_PC state.gpr.PC.qword
+#define REG_RA state.gpr.RA.qword
+#define REG_RA_64 state.gpr.RA_64.qword
+#define REG_S0 state.gpr.S0.qword
+#define REG_S0_64 state.gpr.S0_64.qword
+#define REG_S1 state.gpr.S1.qword
+#define REG_S1_64 state.gpr.S1_64.qword
+#define REG_S2 state.gpr.S2.qword
+#define REG_S2_64 state.gpr.S2_64.qword
+#define REG_S3 state.gpr.S3.qword
+#define REG_S3_64 state.gpr.S3_64.qword
+#define REG_S4 state.gpr.S4.qword
+#define REG_S4_64 state.gpr.S4_64.qword
+#define REG_S5 state.gpr.S5.qword
+#define REG_S5_64 state.gpr.S5_64.qword
+#define REG_S6 state.gpr.S6.qword
+#define REG_S6_64 state.gpr.S6_64.qword
+#define REG_S7 state.gpr.S7.qword
+#define REG_S7_64 state.gpr.S7_64.qword
+#define REG_SP state.gpr.SP.qword
+#define REG_SP_64 state.gpr.SP_64.qword
+#define REG_T0 state.gpr.T0.qword
+#define REG_T0_64 state.gpr.T0_64.qword
+#define REG_T1 state.gpr.T1.qword
+#define REG_T1_64 state.gpr.T1_64.qword
+#define REG_T2 state.gpr.T2.qword
+#define REG_T2_64 state.gpr.T2_64.qword
+#define REG_T3 state.gpr.T3.qword
+#define REG_T3_64 state.gpr.T3_64.qword
+#define REG_T4 state.gpr.T4.qword
+#define REG_T4_64 state.gpr.T4_64.qword
+#define REG_T5 state.gpr.T5.qword
+#define REG_T5_64 state.gpr.T5_64.qword
+#define REG_T6 state.gpr.T6.qword
+#define REG_T6_64 state.gpr.T6_64.qword
+#define REG_T7 state.gpr.T7.qword
+#define REG_T7_64 state.gpr.T7_64.qword
+#define REG_T8 state.gpr.T8.qword
+#define REG_T8_64 state.gpr.T8_64.qword
+#define REG_T9 state.gpr.T9.qword
+#define REG_T9_64 state.gpr.T9_64.qword
+#define REG_V0 state.gpr.V0.qword
+#define REG_V0_64 state.gpr.V0_64.qword
+#define REG_V1 state.gpr.V1.qword
+#define REG_V1_64 state.gpr.V1_64.qword
+#define REG_W0 state.gpr.W0.qword
+#define REG_W1 state.gpr.W1.qword
+#define REG_W10 state.gpr.W10.qword
+#define REG_W11 state.gpr.W11.qword
+#define REG_W12 state.gpr.W12.qword
+#define REG_W13 state.gpr.W13.qword
+#define REG_W14 state.gpr.W14.qword
+#define REG_W15 state.gpr.W15.qword
+#define REG_W16 state.gpr.W16.qword
+#define REG_W17 state.gpr.W17.qword
+#define REG_W18 state.gpr.W18.qword
+#define REG_W19 state.gpr.W19.qword
+#define REG_W2 state.gpr.W2.qword
+#define REG_W20 state.gpr.W20.qword
+#define REG_W21 state.gpr.W21.qword
+#define REG_W22 state.gpr.W22.qword
+#define REG_W23 state.gpr.W23.qword
+#define REG_W24 state.gpr.W24.qword
+#define REG_W25 state.gpr.W25.qword
+#define REG_W26 state.gpr.W26.qword
+#define REG_W27 state.gpr.W27.qword
+#define REG_W28 state.gpr.W28.qword
+#define REG_W29 state.gpr.W29.qword
+#define REG_W3 state.gpr.W3.qword
+#define REG_W30 state.gpr.W30.qword
+#define REG_W31 state.gpr.W31.qword
+#define REG_W4 state.gpr.W4.qword
+#define REG_W5 state.gpr.W5.qword
+#define REG_W6 state.gpr.W6.qword
+#define REG_W7 state.gpr.W7.qword
+#define REG_W8 state.gpr.W8.qword
+#define REG_W9 state.gpr.W9.qword
+#define REG_ZERO state.gpr.ZERO.qword
+#define REG_ZERO_64 state.gpr.ZERO_64.qword
 #endif
 
 #define HYPER_CALL state.hyper_call
@@ -885,8 +885,8 @@
 namespace {
 // Takes the place of an unsupported instruction.
 DEF_SEM(HandleUnsupported) {
-  return __remill_sync_hyper_call(
-      memory, state, SyncHyperCall::kMipsEmulateInstruction);
+  return __remill_sync_hyper_call(memory, state,
+                                  SyncHyperCall::kMipsEmulateInstruction);
 }
 
 // Takes the place of an invalid instruction.
@@ -896,8 +896,8 @@ DEF_SEM(HandleInvalidInstruction) {
 }
 
 DEF_SEM(HandleBreakpoint) {
-  return __remill_sync_hyper_call(
-      memory, state, SyncHyperCall::kDebugBreakpoint);
+  return __remill_sync_hyper_call(memory, state,
+                                  SyncHyperCall::kDebugBreakpoint);
 }
 
 }  // namespace

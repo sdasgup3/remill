@@ -7,54 +7,98 @@ struct ARMDisassembler::PrivateData final {
 };
 
 ARMDisassembler::ARMDisassembler(bool is_64_bits)
-    : CapstoneDisassembler(is_64_bits ? CS_ARCH_ARM : CS_ARCH_ARM64,
-                           is_64_bits ? CS_MODE_LITTLE_ENDIAN : CS_MODE_ARM),
+    : CapstoneDisassembler(
+          is_64_bits ? CS_ARCH_ARM64 : CS_ARCH_ARM,
+          is_64_bits ? CS_MODE_LITTLE_ENDIAN
+                     : static_cast<cs_mode>(CS_MODE_ARM | CS_MODE_THUMB)),
       d(new PrivateData) {
   d->address_size = (is_64_bits ? 64 : 32);
 }
 
 ARMDisassembler::~ARMDisassembler() {}
 
-std::string ARMDisassembler::RegisterName(std::uintmax_t id) const noexcept {
+std::string ARMDisassembler::RegName(std::uintmax_t reg_id) const noexcept {
   return "";
 }
 
-bool ARMDisassembler::PostDisasmHook(
-    const CapstoneInstructionPtr &capstone_instr) const noexcept {
-  return false;
+bool ARMDisassembler::PostDisasmHook(const CapInstrPtr &cap_instr) const
+    noexcept {
+  return true;
 }
 
 bool ARMDisassembler::PostDecodeHook(
-    const std::unique_ptr<Instruction> &remill_instr,
-    const CapstoneInstructionPtr &capstone_instr) const noexcept {
-  return false;
+    const std::unique_ptr<Instruction> &rem_instr,
+    const CapInstrPtr &cap_instr) const noexcept {
+  return true;
 }
 
-bool ARMDisassembler::RegisterName(std::string &name, std::uintmax_t id) const
+bool ARMDisassembler::RegName(std::string &name, std::uintmax_t reg_id) const
     noexcept {
-  name = RegisterName(id);
+  name = RegName(reg_id);
   if (name.empty()) return false;
 
   return true;
 }
 
-bool ARMDisassembler::RegisterSize(std::size_t &size,
-                                   const std::string &name) const noexcept {
-  return false;
+bool ARMDisassembler::RegSize(std::size_t &size, const std::string &name) const
+    noexcept {
+  return true;
 }
 
-bool ARMDisassembler::InstructionOperands(
-    std::vector<Operand> &operand_list,
-    const CapstoneInstructionPtr &capstone_instr) const noexcept {
-  return false;
+/// \todo this is the bare minimum to get 'testdec' to work
+bool ARMDisassembler::InstrOps(std::vector<Operand> &op_list,
+                               const CapInstrPtr &cap_instr) const noexcept {
+  Operand op = {};
+  op.type = Operand::kTypeImmediate;
+  op.imm.is_signed = false;
+
+  // arm
+  if (d->address_size == 32) {
+    auto instr_details = cap_instr->detail->arm;
+    if (instr_details.op_count == 1 &&
+        instr_details.operands[0].type == ARM_OP_IMM) {
+      op.imm.val = instr_details.operands[0].imm;
+    }
+
+    // arm64
+  } else {
+    auto instr_details = cap_instr->detail->arm64;
+    if (instr_details.op_count == 1 &&
+        instr_details.operands[0].type == ARM64_OP_IMM)
+      op.imm.val = instr_details.operands[0].imm;
+  }
+
+  if (op.imm.val != 0) op_list.push_back(op);
+
+  return true;
 }
 
 std::size_t ARMDisassembler::AddressSize() const noexcept {
   return d->address_size;
 }
 
-Instruction::Category ARMDisassembler::InstructionCategory(
-    const CapstoneInstructionPtr &capstone_instr) const noexcept {
+Instruction::Category ARMDisassembler::InstrCategory(
+    const CapInstrPtr &cap_instr) const noexcept {
+  // arm
+  if (d->address_size == 32) {
+    auto instr_details = cap_instr->detail->arm;
+
+    if (cap_instr->id == ARM_INS_BL)
+      return Instruction::kCategoryDirectFunctionCall;
+
+    else if (cap_instr->id == ARM_INS_BX &&
+             instr_details.operands[0].type == ARM_OP_REG &&
+             instr_details.operands[0].reg == ARM_REG_LR)
+      return Instruction::kCategoryFunctionReturn;
+
+    // arm64
+  } else {
+    if (cap_instr->id == ARM64_INS_BL)
+      return Instruction::kCategoryDirectFunctionCall;
+
+    else if (cap_instr->id == ARM64_INS_RET)
+      return Instruction::kCategoryFunctionReturn;
+  }
   return Instruction::kCategoryInvalid;
 }
 

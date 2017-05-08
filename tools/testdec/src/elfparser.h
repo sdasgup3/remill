@@ -16,7 +16,7 @@ class ELFParser final {
   std::unique_ptr<PrivateData> d;
 
  public:
-  ELFParser(const std::string &image_path);
+  ELFParser(const std::string &path);
   ~ELFParser();
 
   bool is64bit() const noexcept;
@@ -24,11 +24,10 @@ class ELFParser final {
   std::uint16_t architecture() const noexcept;
   std::uintmax_t entryPoint() const noexcept;
 
-  void read(std::uint8_t *buffer, std::size_t size) const;
-  void read(std::uintmax_t virtual_address, std::uint8_t *buffer,
-            std::size_t size) const;
+  void read(std::uint8_t *buf, std::size_t size) const;
+  void read(std::uintmax_t vaddr, std::uint8_t *buf, std::size_t size) const;
 
-  void seek(std::uintmax_t virtual_address) const noexcept;
+  void seek(std::uintmax_t vaddr) const noexcept;
   std::uintmax_t tell() const noexcept;
 
   std::uint8_t u8() const;
@@ -43,11 +42,9 @@ class ELFParser final {
 
  private:
   void parseHeader();
-  void parseProgramHeaderTable();
   void parseSectionList();
-  bool offsetFromVirtualAddress(std::uintmax_t &offset,
-                                std::size_t &available_bytes,
-                                std::uintmax_t virtual_address) const noexcept;
+  bool offsetFromVaddr(std::uintmax_t &off, std::size_t &avail_bytes,
+                       std::uintmax_t vaddr) const noexcept;
 };
 
 #endif  // MIPSDEC_ELFPARSER_H

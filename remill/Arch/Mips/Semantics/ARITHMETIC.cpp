@@ -58,10 +58,7 @@ DEF_SEM(ADD_IMPL, D dst, S1 src1, S2 src2) {
   auto rhs = Read(src2);
   auto sum = UAdd(lhs, rhs);
 
-  RaiseException(
-    ((sum >> 31) & 1) != ((sum >> 30) & 1),
-    IntegerOverflow
-  );
+  RaiseException(((sum >> 31) & 1) != ((sum >> 30) & 1), IntegerOverflow);
 
   WriteZExt(dst, sum);
   return memory;
@@ -69,7 +66,6 @@ DEF_SEM(ADD_IMPL, D dst, S1 src1, S2 src2) {
 
 DEF_ISEL_MnW_Mn_Rn(ADD, ADD_IMPL);
 
+}  // namespace
 
-} // namespace
-
-#endif // REMILL_ARCH_MIPS_SEMANTICS_ADD_H_
+#endif  // REMILL_ARCH_MIPS_SEMANTICS_ADD_H_
