@@ -6,8 +6,8 @@
   The tool requires the architecture module to implement the following two (pure
   virtual) methods:
 
-   > CapstoneDisassembler::InstructionCategory
-   > CapstoneDisassembler::InstructionOperands
+   > CapstoneDisassembler::InstrCategory
+   > CapstoneDisassembler::InstrOps
 
   You need to support function returns and direct function calls for the first
   method, and immediate operands for the second one. Example: "ret" and "call
@@ -21,6 +21,7 @@
 #include <iostream>
 #include <vector>
 
+#include <remill/Arch/Capstone/ARMDisassembler.h>
 #include <remill/Arch/Capstone/MipsDisassembler.h>
 #include <remill/Arch/Instruction.h>
 
@@ -30,14 +31,13 @@
 #include <llvm/Support/Error.h>
 #include <llvm/Support/SourceMgr.h>
 
-void PrintCapstoneInstruction(
-    std::size_t address_size,
-    const remill::CapstoneInstructionPtr &capstone_instr,
-    const std::string &semantic_function) noexcept;
+void PrintCapInstr(std::size_t address_size,
+                   const remill::CapInstrPtr &cap_instr,
+                   const std::string &sem_func) noexcept;
 std::unique_ptr<llvm::Module> LoadLLVMBitcode(const std::string &path,
-                                              llvm::LLVMContext &llvm_context);
-bool IsFunctionSemanticsImplemented(
-    const std::string &semantic_function,
+                                              llvm::LLVMContext &llvm_ctx);
+bool IsFuncSemImplemented(
+    const std::string &sem_func,
     const std::unique_ptr<llvm::Module> &llvm_module) noexcept;
 
 int main(int argc, char *argv[], char *envp[]) {
@@ -66,8 +66,6 @@ int main(int argc, char *argv[], char *envp[]) {
     switch (elf_parser.architecture()) {
       case EM_ARM:
       case EM_AARCH64:
-        throw std::runtime_error("ARM support is not yet implemented");
-
       case EM_MIPS:
       case EM_MIPS_RS3_LE:
       case EM_MIPS_X:
@@ -77,20 +75,30 @@ int main(int argc, char *argv[], char *envp[]) {
         throw std::runtime_error("Unsupported architecture!");
     }
 
+    auto arch = elf_parser.architecture();
+
     llvm::LLVMContext llvm_context;
     auto llvm_module = LoadLLVMBitcode(semantics_path, llvm_context);
 
-    remill::MipsDisassembler disassembler(elf_parser.is64bit());
+    std::unique_ptr<remill::CapstoneDisassembler> disasm;
 
-    std::vector<std::uintmax_t> address_queue = {elf_parser.entryPoint()};
-    std::vector<std::uintmax_t> function_list;
+    if (arch == EM_ARM || arch == EM_AARCH64)
+      disasm.reset(new remill::ARMDisassembler(elf_parser.is64bit()));
+    else if (arch == EM_MIPS || arch == EM_MIPS_RS3_LE || arch == EM_MIPS_X)
+      disasm.reset(new remill::MipsDisassembler(elf_parser.is64bit()));
+
+    std::cout << "Entry point located at virtual address 0x" << std::hex
+              << elf_parser.entryPoint() << "\n\n";
+
+    std::vector<std::uintmax_t> addr_queue = {elf_parser.entryPoint()};
+    std::vector<std::uintmax_t> func_list;
     std::size_t address_size = elf_parser.is64bit() ? 8 : 4;
 
-    while (!address_queue.empty()) {
-      std::uintmax_t virtual_address = address_queue.back();
-      address_queue.pop_back();
+    while (!addr_queue.empty()) {
+      std::uintmax_t virtual_address = addr_queue.back();
+      addr_queue.pop_back();
 
-      function_list.push_back(virtual_address);
+      func_list.push_back(virtual_address);
 
       std::cout << "   proc sub_" << std::hex << virtual_address << std::endl;
 
@@ -98,38 +106,43 @@ int main(int argc, char *argv[], char *envp[]) {
         std::array<std::uint8_t, 32> buffer;
         elf_parser.read(virtual_address, buffer.data(), buffer.size());
 
-        auto capstone_instr = disassembler.Disassemble(
-            virtual_address, buffer.data(), buffer.size());
+        auto capstone_instr =
+            disasm->Disassemble(virtual_address, buffer.data(), buffer.size());
+        if (!capstone_instr) {
+          std::stringstream error_message;
+          error_message << "Failed to disassemble the instruction at VA "
+                        << std::hex << virtual_address;
+          throw std::runtime_error(error_message.str());
+        }
 
         std::vector<remill::Operand> operand_list;
-        if (!disassembler.InstructionOperands(operand_list, capstone_instr))
+        if (!disasm->InstrOps(operand_list, capstone_instr))
           throw std::runtime_error(
               "Failed to convert the instruction operands");
 
         std::string semantic_function =
-            disassembler.SemanticFunctionName(capstone_instr, operand_list);
+            disasm->SemFuncName(capstone_instr, operand_list);
 
-        if (IsFunctionSemanticsImplemented(semantic_function, llvm_module))
+        if (IsFuncSemImplemented(semantic_function, llvm_module))
           std::cout << "   ";
         else
           std::cout << "x  ";
 
-        PrintCapstoneInstruction(address_size, capstone_instr,
-                                 semantic_function);
+        PrintCapInstr(address_size, capstone_instr, semantic_function);
         virtual_address += capstone_instr->size;
 
-        auto instr_category = disassembler.InstructionCategory(capstone_instr);
+        auto instr_category = disasm->InstrCategory(capstone_instr);
         if (instr_category ==
             remill::Instruction::kCategoryDirectFunctionCall) {
-          std::vector<remill::Operand> operand_list;
-          if (disassembler.InstructionOperands(operand_list, capstone_instr) &&
-              operand_list.size() == 1 &&
-              operand_list[0].type == remill::Operand::kTypeImmediate) {
-            std::uintmax_t call_destination = operand_list[0].imm.val;
+          std::vector<remill::Operand> op_list;
+          if (disasm->InstrOps(op_list, capstone_instr) &&
+              op_list.size() == 1 &&
+              op_list[0].type == remill::Operand::kTypeImmediate) {
+            std::uintmax_t call_dest = op_list[0].imm.val;
 
-            if (std::find(function_list.begin(), function_list.end(),
-                          call_destination) == function_list.end())
-              address_queue.push_back(call_destination);
+            if (std::find(func_list.begin(), func_list.end(), call_dest) ==
+                func_list.end())
+              addr_queue.push_back(call_dest);
           }
         } else if (instr_category ==
                    remill::Instruction::kCategoryFunctionReturn) {
@@ -149,31 +162,30 @@ int main(int argc, char *argv[], char *envp[]) {
   }
 }
 
-void PrintCapstoneInstruction(
-    std::size_t address_size,
-    const remill::CapstoneInstructionPtr &capstone_instr,
-    const std::string &semantic_function) noexcept {
+void PrintCapInstr(std::size_t address_size,
+                   const remill::CapInstrPtr &cap_instr,
+                   const std::string &sem_func) noexcept {
   std::cout << "  " << std::hex << std::setfill('0')
             << std::setw(static_cast<int>(address_size * 2))
-            << capstone_instr->address << "  ";
+            << cap_instr->address << "  ";
 
-  for (std::uint16_t i = 0; i < capstone_instr->size; i++)
-    std::cout << std::setfill('0') << std::setw(2) << std::hex
-              << static_cast<int>(capstone_instr->bytes[i]);
-  std::cout << "  ";
+  std::stringstream instr_bytes;
+  for (std::uint16_t i = 0; i < cap_instr->size; i++)
+    instr_bytes << std::setfill('0') << std::setw(2) << std::hex
+                << static_cast<int>(cap_instr->bytes[i]);
+  std::cout << std::setfill(' ') << std::setw(8) << instr_bytes.str() << "  ";
 
-  std::cout << std::setfill(' ') << std::setw(10) << capstone_instr->mnemonic
-            << " ";
-  std::cout << std::setfill(' ') << std::setw(24) << capstone_instr->op_str
+  std::cout << std::setfill(' ') << std::setw(10) << cap_instr->mnemonic << " ";
+  std::cout << std::setfill(' ') << std::setw(24) << cap_instr->op_str
             << "    ";
-  std::cout << semantic_function << std::endl;
+  std::cout << sem_func << std::endl;
 }
 
 std::unique_ptr<llvm::Module> LoadLLVMBitcode(const std::string &path,
-                                              llvm::LLVMContext &llvm_context) {
+                                              llvm::LLVMContext &llvm_ctx) {
   llvm::SMDiagnostic error_output;
 
-  auto llvm_module = llvm::parseIRFile(path, error_output, llvm_context);
+  auto llvm_module = llvm::parseIRFile(path, error_output, llvm_ctx);
   if (!llvm_module) {
     std::stringstream error_message;
     error_message << "Failed to parse the bitcode file! Error: "
@@ -188,9 +200,9 @@ std::unique_ptr<llvm::Module> LoadLLVMBitcode(const std::string &path,
   return llvm_module;
 }
 
-bool IsFunctionSemanticsImplemented(
-    const std::string &semantic_function,
+bool IsFuncSemImplemented(
+    const std::string &sem_func,
     const std::unique_ptr<llvm::Module> &llvm_module) noexcept {
-  std::string function_name = std::string("ISEL_") + semantic_function;
+  std::string function_name = std::string("ISEL_") + sem_func;
   return (llvm_module->getGlobalVariable(function_name, true) != nullptr);
 }

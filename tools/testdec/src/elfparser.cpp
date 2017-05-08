@@ -25,18 +25,18 @@ struct ELFParser::PrivateData final {
   ElfObject image_object;
 
   GElf_Ehdr image_header;
-  std::size_t address_size;
+  std::size_t addr_size;
   bool little_endian;
-  std::list<GElf_Shdr> section_header_list;
+  std::list<GElf_Shdr> sect_list;
 
-  std::uintmax_t virtual_address;
+  std::uintmax_t vaddr;
 };
 
-ELFParser::ELFParser(const std::string &image_path) : d(new PrivateData) {
+ELFParser::ELFParser(const std::string &path) : d(new PrivateData) {
   // open the image and create the base elf object
-  d->image_path = image_path;
+  d->image_path = path;
 
-  int image_file_handle = open(image_path.data(), O_RDONLY, 0);
+  int image_file_handle = open(path.data(), O_RDONLY, 0);
   if (image_file_handle == -1)
     throw std::runtime_error("ELFParser: Failed to open the input file");
 
@@ -62,12 +62,12 @@ ELFParser::ELFParser(const std::string &image_path) : d(new PrivateData) {
     throw std::runtime_error("Unrecognized endianness specified");
 
   parseSectionList();
-  d->virtual_address = 0;
+  d->vaddr = 0;
 }
 
 ELFParser::~ELFParser() {}
 
-bool ELFParser::is64bit() const noexcept { return (d->address_size == 64); }
+bool ELFParser::is64bit() const noexcept { return (d->addr_size == 64); }
 
 bool ELFParser::littleEndian() const noexcept { return d->little_endian; }
 
@@ -79,15 +79,14 @@ std::uintmax_t ELFParser::entryPoint() const noexcept {
   return static_cast<std::uintmax_t>(d->image_header.e_entry);
 }
 
-void ELFParser::read(std::uint8_t *buffer, std::size_t size) const {
+void ELFParser::read(std::uint8_t *buf, std::size_t size) const {
   while (size > 0) {
     std::uintmax_t offset;
     std::size_t available_bytes;
 
-    if (!offsetFromVirtualAddress(offset, available_bytes,
-                                  d->virtual_address)) {
-      std::memset(buffer, 0, size);
-      d->virtual_address += size;
+    if (!offsetFromVaddr(offset, available_bytes, d->vaddr)) {
+      std::memset(buf, 0, size);
+      d->vaddr += size;
 
       return;
     }
@@ -100,26 +99,24 @@ void ELFParser::read(std::uint8_t *buffer, std::size_t size) const {
           "ELFParser: Failed to seek to the required offset");
 
     std::size_t bytes_to_read = std::min(size, available_bytes);
-    if (::read(static_cast<int>(file_handle), buffer, bytes_to_read) == -1)
+    if (::read(static_cast<int>(file_handle), buf, bytes_to_read) == -1)
       throw std::runtime_error(
           "ELFParser: Failed to read the executable image");
 
     size -= bytes_to_read;
-    buffer += bytes_to_read;
+    buf += bytes_to_read;
   }
 }
 
-void ELFParser::read(std::uintmax_t virtual_address, std::uint8_t *buffer,
+void ELFParser::read(std::uintmax_t vaddr, std::uint8_t *buf,
                      std::size_t size) const {
-  seek(virtual_address);
-  read(buffer, size);
+  seek(vaddr);
+  read(buf, size);
 }
 
-void ELFParser::seek(std::uintmax_t virtual_address) const noexcept {
-  d->virtual_address = virtual_address;
-}
+void ELFParser::seek(std::uintmax_t vaddr) const noexcept { d->vaddr = vaddr; }
 
-std::uintmax_t ELFParser::tell() const noexcept { return d->virtual_address; }
+std::uintmax_t ELFParser::tell() const noexcept { return d->vaddr; }
 
 std::uint8_t ELFParser::u8() const {
   std::uint8_t value;
@@ -168,7 +165,7 @@ void ELFParser::parseHeader() {
   if (elf_class != ELFCLASS32 && elf_class != ELFCLASS64)
     throw std::runtime_error("ELFParser: Unsupported ELF class");
 
-  d->address_size = (elf_class == ELFCLASS32) ? 32 : 64;
+  d->addr_size = (elf_class == ELFCLASS32) ? 32 : 64;
 }
 
 void ELFParser::parseSectionList() {
@@ -177,7 +174,7 @@ void ELFParser::parseSectionList() {
   while (true) {
     section = elf_nextscn(d->image_object.get(), section);
     if (section == nullptr) {
-      if (d->section_header_list.empty())
+      if (d->sect_list.empty())
         throw std::runtime_error(
             "The section headers have been stripped out of the executable "
             "image!");
@@ -190,32 +187,28 @@ void ELFParser::parseSectionList() {
       throw std::runtime_error(
           "ELFParser: Failed to retrieve the section headers");
 
-    d->section_header_list.push_back(section_header);
+    d->sect_list.push_back(section_header);
   }
 }
 
-bool ELFParser::offsetFromVirtualAddress(std::uintmax_t &offset,
-                                         std::size_t &available_bytes,
-                                         std::uintmax_t virtual_address) const
-    noexcept {
-  offset = 0;
-  available_bytes = 0;
+bool ELFParser::offsetFromVaddr(std::uintmax_t &off, std::size_t &avail_bytes,
+                                std::uintmax_t vaddr) const noexcept {
+  off = 0;
+  avail_bytes = 0;
 
-  GElf_Shdr required_section_header = {};
+  GElf_Shdr req_sect_header = {};
 
-  for (const auto &section_header : d->section_header_list) {
-    if (virtual_address >= section_header.sh_addr &&
-        virtual_address < section_header.sh_addr + section_header.sh_size) {
-      required_section_header = section_header;
+  for (const auto &section : d->sect_list) {
+    if (vaddr >= section.sh_addr && vaddr < section.sh_addr + section.sh_size) {
+      req_sect_header = section;
       break;
     }
   }
 
-  if (required_section_header.sh_addr == 0) return false;
+  if (req_sect_header.sh_addr == 0) return false;
 
-  offset = required_section_header.sh_offset +
-           (virtual_address - required_section_header.sh_addr);
-  available_bytes = required_section_header.sh_size - offset;
+  off = req_sect_header.sh_offset + (vaddr - req_sect_header.sh_addr);
+  avail_bytes = req_sect_header.sh_size - off;
 
   return true;
 }
