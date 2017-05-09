@@ -6,11 +6,12 @@ struct ARMDisassembler::PrivateData final {
   std::size_t address_size;
 };
 
-ARMDisassembler::ARMDisassembler(bool is_64_bits)
-    : CapstoneDisassembler(
-          is_64_bits ? CS_ARCH_ARM64 : CS_ARCH_ARM,
-          is_64_bits ? CS_MODE_LITTLE_ENDIAN
-                     : static_cast<cs_mode>(CS_MODE_ARM | CS_MODE_THUMB)),
+/// \todo this looks horrible
+ARMDisassembler::ARMDisassembler(bool is_64_bits, bool thumb_mode)
+    : CapstoneDisassembler(is_64_bits ? CS_ARCH_ARM64 : CS_ARCH_ARM,
+                           is_64_bits
+                               ? CS_MODE_LITTLE_ENDIAN
+                               : thumb_mode ? CS_MODE_THUMB : CS_MODE_ARM),
       d(new PrivateData) {
   d->address_size = (is_64_bits ? 64 : 32);
 }

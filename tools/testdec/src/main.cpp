@@ -64,35 +64,33 @@ int main(int argc, char *argv[], char *envp[]) {
                "runtime.\n\n";
 
   try {
-    ELFParser elf_parser(image_path);
-    switch (elf_parser.architecture()) {
-      case EM_ARM:
-      case EM_AARCH64:
-      case EM_MIPS:
-      case EM_MIPS_RS3_LE:
-      case EM_MIPS_X:
-        break;
-
-      default:
-        throw std::runtime_error("Unsupported architecture!");
-    }
-
-    auto arch = elf_parser.architecture();
-
     llvm::LLVMContext llvm_context;
     auto llvm_module = LoadLLVMBitcode(semantics_path, llvm_context);
 
-    std::unique_ptr<remill::CapstoneDisassembler> disasm;
+    ELFParser elf_parser(image_path);
+    auto entry_point = elf_parser.entryPoint();
+    auto arch = elf_parser.architecture();
 
-    if (arch == EM_ARM || arch == EM_AARCH64)
-      disasm.reset(new remill::ARMDisassembler(elf_parser.is64bit()));
-    else if (arch == EM_MIPS || arch == EM_MIPS_RS3_LE || arch == EM_MIPS_X)
+    std::unique_ptr<remill::CapstoneDisassembler> disasm;
+    if (arch == EM_ARM || arch == EM_AARCH64) {
+      bool enable_thumb_mode = false;
+      if ((entry_point & 1) != 0) {
+        entry_point--;
+        enable_thumb_mode = true;
+      }
+
+      disasm.reset(
+          new remill::ARMDisassembler(elf_parser.is64bit(), enable_thumb_mode));
+    } else if (arch == EM_MIPS || arch == EM_MIPS_RS3_LE || arch == EM_MIPS_X) {
       disasm.reset(new remill::MipsDisassembler(elf_parser.is64bit()));
+    } else {
+      throw std::runtime_error("Unsupported architecture");
+    }
 
     std::cout << "Entry point located at virtual address 0x" << std::hex
-              << elf_parser.entryPoint() << "\n\n";
+              << entry_point << "\n\n";
 
-    std::vector<std::uintmax_t> addr_queue = {elf_parser.entryPoint()};
+    std::vector<std::uintmax_t> addr_queue = {entry_point};
     std::vector<std::uintmax_t> func_list;
     std::size_t address_size = elf_parser.is64bit() ? 8 : 4;
 

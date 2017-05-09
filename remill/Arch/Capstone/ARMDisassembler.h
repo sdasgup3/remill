@@ -11,7 +11,7 @@ class ARMDisassembler final : public CapstoneDisassembler {
 
  public:
   /// \todo thumb mode, endianness
-  ARMDisassembler(bool is_64_bits);
+  ARMDisassembler(bool is_64_bits, bool thumb_mode);
   virtual ~ARMDisassembler();
 
  private:
