@@ -81,14 +81,20 @@ int main(int argc, char *argv[], char *envp[]) {
 
       disasm.reset(
           new remill::ARMDisassembler(elf_parser.is64bit(), enable_thumb_mode));
+
+      std::cout << "Architecture: " << (arch == EM_ARM ? "ARM" : "AArch64")
+                << std::endl;
+      std::cout << "Thumb mode: "
+                << (enable_thumb_mode ? "enabled" : "disabled") << std::endl;
     } else if (arch == EM_MIPS || arch == EM_MIPS_RS3_LE || arch == EM_MIPS_X) {
       disasm.reset(new remill::MipsDisassembler(elf_parser.is64bit()));
+
+      std::cout << "Architecture: MIPS" << std::endl;
     } else {
       throw std::runtime_error("Unsupported architecture");
     }
 
-    std::cout << "Entry point located at virtual address 0x" << std::hex
-              << entry_point << "\n\n";
+    std::cout << "Entry point: 0x" << std::hex << entry_point << "\n\n";
 
     std::vector<std::uintmax_t> addr_queue = {entry_point};
     std::vector<std::uintmax_t> func_list;
