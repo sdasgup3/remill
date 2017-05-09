@@ -297,6 +297,11 @@ namespace {
 # define BUILD_SEMANTICS_DIR
 #endif  // BUILD_SEMANTICS_DIR
 
+#ifndef BUILD_SEMANTICS_DIR_ARM
+# error "Macro `BUILD_SEMANTICS_DIR_ARM` must be defined to support ARM architecture."
+# define BUILD_SEMANTICS_DIR_ARM
+#endif  // BUILD_SEMANTICS_DIR
+
 #ifndef INSTALL_SEMANTICS_DIR
 # error "Macro `INSTALL_SEMANTICS_DIR` must be defined."
 # define INSTALL_SEMANTICS_DIR
@@ -305,6 +310,7 @@ namespace {
 static const char *gSemanticsSearchPaths[] = {
     // Derived from the build.
     BUILD_SEMANTICS_DIR "\0",
+    BUILD_SEMANTICS_DIR_ARM "\0",
     INSTALL_SEMANTICS_DIR "\0",
 };
 

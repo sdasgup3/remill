@@ -26,7 +26,7 @@
 
 DEFINE_string(arch, "", "Architecture of the code being translated. "
                         "Valid architectures: x86, amd64 (with or without "
-                        "`_avx` or `_avx512` appended).");
+                        "`_avx` or `_avx512` appended), aarch64.");
 
 DECLARE_string(os);
 
@@ -73,11 +73,20 @@ Arch::~Arch(void) {}
 const Arch *Arch::Get(OSName os_name_, ArchName arch_name_) {
   switch (arch_name_) {
     case kArchInvalid:
+      LOG(FATAL)
+          << "invalid architecture!";
+          break;
     case kArchARM:
     case kArchARM64:
-    case kArchARM64_BE:
-      LOG(FATAL) << "Unrecognized architecture.";
-      return nullptr;
+    case kArchARM64_BE: {
+      static ArchCache gArchARM64;
+      auto &arch = gArchARM64[os_name_];
+      if (!arch) {
+        DLOG(INFO) << "Using architecture: ARM";
+        arch = ArchPtr(GetARM(os_name_, arch_name_));
+      }
+      return arch.get();
+    }
 
     case kArchX86: {
       static ArchCache gArchX86;

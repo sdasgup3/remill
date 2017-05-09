@@ -6,8 +6,11 @@ struct ARMDisassembler::PrivateData final {
   std::size_t address_size;
 };
 
-ARMDisassembler::ARMDisassembler(bool is_64_bits) : CapstoneDisassembler(is_64_bits ? CS_ARCH_ARM : CS_ARCH_ARM64, is_64_bits ? CS_MODE_LITTLE_ENDIAN : CS_MODE_ARM),
-                                                      d(new PrivateData) {
+ARMDisassembler::ARMDisassembler(bool is_64_bits) :
+    CapstoneDisassembler(is_64_bits ? CS_ARCH_ARM : CS_ARCH_ARM64,
+        is_64_bits ? CS_MODE_LITTLE_ENDIAN : CS_MODE_ARM),
+        d(new PrivateData) {
+
   d->address_size = (is_64_bits ? 64 : 32);
 }
 
@@ -29,7 +32,7 @@ bool ARMDisassembler::PostDecodeHook(const std::unique_ptr<Instruction> &remill_
 bool ARMDisassembler::RegisterName(std::string &name, std::uintmax_t id) const noexcept {
   name = RegisterName(id);
   if (name.empty())
-      return false;
+    return false;
 
   return true;
 }

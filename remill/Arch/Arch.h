@@ -65,6 +65,9 @@ class Arch {
   // Defined in `remill/Arch/X86/Arch.cpp`.
   static const Arch *GetX86(OSName os, ArchName arch_name);
 
+  // Defined in `remill/Arch/ARM/Arch.cpp`.
+  static const Arch *GetARM(OSName os, ArchName arch_name);
+
   // Defined in `remill/Arch/Mips/Arch.cpp`.
   static const Arch *GetMips(OSName os, ArchName arch_name);
 

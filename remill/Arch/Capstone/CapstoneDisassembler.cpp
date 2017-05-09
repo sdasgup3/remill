@@ -15,7 +15,6 @@ void CapstoneInstructionDeleter(cs_insn *instruction) noexcept {
 
 struct CapstoneDisassembler::PrivateData final {
   csh capstone;
-
   cs_arch architecture;
   cs_mode disasm_mode;
   std::size_t address_size;
