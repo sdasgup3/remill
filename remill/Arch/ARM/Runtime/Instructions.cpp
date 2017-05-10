@@ -68,3 +68,6 @@
 #define REG_X29 state.gpr.R29.qword
 #define REG_X30 state.gpr.R30.qword
 
+#include "remill/Arch/ARM/Semantics/BINARY.cpp"
+#include "remill/Arch/ARM/Semantics/CALL_RET.cpp"
+#include "remill/Arch/ARM/Semantics/DATAXFER.cpp"

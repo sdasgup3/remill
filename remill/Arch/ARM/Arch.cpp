@@ -35,7 +35,6 @@ namespace {
 
 }
 
-
 struct ARMArch::PrivateData final {
   OSName os_name_;
   ArchName arch_name_;
@@ -49,6 +48,7 @@ const Arch *Arch::GetARM(
 
 ARMArch::ARMArch(OSName os_name_, ArchName arch_name_)
     : Arch(os_name_, arch_name_) {
+  data = llvm::make_unique<PrivateData>();
   data->os_name_ = os_name_;
   data->arch_name_ = arch_name_;
   data->disass_ = llvm::make_unique<ARMDisassembler>(arch_name_ == kArchARM64);
@@ -117,24 +117,12 @@ void ARMArch::PrepareModule(llvm::Module *mod) const {
 
 // Decode ARM instructions.
 Instruction *ARMArch::DecodeInstruction(uint64_t address, const std::string &instr_bytes) const {
-  auto instr = new Instruction;
-  data->disass_->Decode(std::unique_ptr<Instruction> (instr), address, instr_bytes);
+  //auto instr = new Instruction;
+  std::unique_ptr<Instruction> instr(new Instruction);
+  data->disass_->Decode(instr, address, instr_bytes);
   std::cout << std::hex << "Decoding ARM instructions done " << instr->next_pc << std::endl;
   std::cout << std::hex << instr->function << "\t" << instr->disassembly << std::endl;
-
-
-
-  //uint64_t app_pc = address;
-  //uint64_t next_pc;
-  //const uint8_t* code = reinterpret_cast<const uint8_t *>(instr_bytes.data());
-  //std::cout << std::hex << "Decoding ARM instructions " << app_pc << std::endl;
- // next_pc = ARMD_Decode(drcontext, code, address, instr);
-  instr->arch_name = arch_name;
-  instr->pc = address;
-  //instr->next_pc = next_pc;
-  //std::cout << std::hex << "Decoding ARM instructions done " << next_pc << std::endl;
-
-  return instr;
+  return instr.release();
 }
 
 

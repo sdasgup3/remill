@@ -15,32 +15,40 @@ typedef std::unique_ptr<cs_insn, std::function<void (cs_insn *)>> CapstoneInstru
 
 /// This class is abstract and can't be used directly; you will have to inherit from this and specialize it for your architecture
 class CapstoneDisassembler {
-  struct PrivateData;
-  std::unique_ptr<PrivateData> d;
+
+  struct PrivateData final {
+    csh capstone;
+    cs_arch architecture;
+    cs_mode disasm_mode;
+    std::size_t address_space;
+    bool little_endian;
+  };
 
   CapstoneDisassembler(const CapstoneDisassembler &other) = delete;
   CapstoneDisassembler &operator=(const CapstoneDisassembler &other) = delete;
   CapstoneDisassembler() = delete;
 
 public:
+  std::unique_ptr<PrivateData> data_;
+
   CapstoneDisassembler(cs_arch architecture, cs_mode mode);
   virtual ~CapstoneDisassembler();
 
   /// decodes exactly one instruction from the specified buffer.
-  bool Decode(const std::unique_ptr<Instruction> &remill_instr, uint64_t address, const std::string &instr_bytes) const noexcept;
+  virtual bool Decode(const std::unique_ptr<Instruction> &remill_instr, uint64_t address, const std::string &instr_bytes) const noexcept;
 
   /// Disassembles the specified buffer trying to return exactly one opcode.
-  CapstoneInstructionPtr Disassemble(std::uint64_t address, const std::uint8_t *buffer, std::size_t buffer_size) const noexcept;
+  virtual CapstoneInstructionPtr Disassemble(std::uint64_t address, const std::uint8_t *buffer, std::size_t buffer_size) const noexcept;
 
   /**
     Converts a CapstoneInstruction to a remill::Instruction object.
     \param remill_instr The Remill's Instruction object. This is passed as an reference because the constructor is protected.
   */
 
-  bool ConvertToRemillInstruction(const std::unique_ptr<Instruction> &remill_instr, const CapstoneInstructionPtr &capstone_instr) const noexcept;
+  virtual bool ConvertToRemillInstruction(const std::unique_ptr<Instruction> &remill_instr, const CapstoneInstructionPtr &capstone_instr) const noexcept;
 
   /// Returns the action type for the specified register.
-  Operand::Action RegisterAccessType(unsigned int register_id, const CapstoneInstructionPtr &capstone_instr) const noexcept;
+  virtual Operand::Action RegisterAccessType(unsigned int register_id, const CapstoneInstructionPtr &capstone_instr) const noexcept;
 
   //
   // Architecture-specific customizations

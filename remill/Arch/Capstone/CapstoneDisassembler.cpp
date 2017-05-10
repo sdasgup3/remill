@@ -1,5 +1,6 @@
 #include "CapstoneDisassembler.h"
 
+#include <iostream>
 #include <sstream>
 #include <algorithm>
 
@@ -9,55 +10,24 @@
 namespace remill {
 
 void CapstoneInstructionDeleter(cs_insn *instruction) noexcept {
-  if (instruction != nullptr)
-    cs_free(instruction, 1);
+  //if (instruction != nullptr)
+    //cs_free(instruction, 1);
 }
 
-struct CapstoneDisassembler::PrivateData final {
-  csh capstone;
-  cs_arch architecture;
-  cs_mode disasm_mode;
-  std::size_t address_size;
-  bool little_endian;
-};
+CapstoneDisassembler::CapstoneDisassembler(cs_arch arch, cs_mode mode) : data_(new PrivateData) {
+  data_->little_endian = ((mode & CS_MODE_BIG_ENDIAN) == 0);
+  data_->disasm_mode = mode;
+  data_->architecture = arch;
 
-CapstoneDisassembler::CapstoneDisassembler(cs_arch architecture, cs_mode mode) : d(new PrivateData) {
-  d->little_endian = ((mode & CS_MODE_BIG_ENDIAN) == 0);
-  d->disasm_mode = mode;
+  CHECK(cs_open(data_->architecture, data_->disasm_mode, &data_->capstone) == CS_ERR_OK)
+      << "Failed to initialize the Capstone library!";
 
-  CHECK(cs_open(CS_ARCH_MIPS, d->disasm_mode, &d->capstone) == CS_ERR_OK)
-      << "The MIPS module has failed to initialize the Capstone library";
-
-  switch (architecture) {
-    case CS_ARCH_ARM64: {
-      d->address_size = 64;
-      break;
-    }
-
-    case CS_ARCH_ARM: {
-      d->address_size = 32;
-      break;
-    }
-
-    case CS_ARCH_MIPS: {
-      if ((mode & CS_MODE_MIPS64) != 0)
-        d->address_size = 64;
-      else
-        d->address_size = 32;
-
-      break;
-    }
-
-    default: {
-      CHECK(false) << "Invalid architecture selected";
-    }
-  }
-
-  cs_option(d->capstone, CS_OPT_DETAIL, CS_OPT_ON);
+  CHECK(cs_option(data_->capstone, CS_OPT_DETAIL, CS_OPT_ON) == CS_ERR_OK)
+      << "Failed to set the capstone decoder options!";
 }
 
 CapstoneDisassembler::~CapstoneDisassembler() {
-  cs_close(&d->capstone);
+  cs_close(&data_->capstone);
 }
 
 bool CapstoneDisassembler::Decode(const std::unique_ptr<Instruction> &remill_instr, uint64_t address, const std::string &instr_bytes) const noexcept {
@@ -76,14 +46,12 @@ bool CapstoneDisassembler::Decode(const std::unique_ptr<Instruction> &remill_ins
 
 CapstoneInstructionPtr CapstoneDisassembler::Disassemble(std::uint64_t address, const std::uint8_t *buffer, std::size_t buffer_size) const noexcept {
   cs_insn *temp_instr;
-  if (cs_disasm(d->capstone, buffer, buffer_size, address, 1, &temp_instr) != 1)
-    return nullptr;
 
-  auto capstone_instr = CapstoneInstructionPtr(temp_instr, CapstoneInstructionDeleter);
-  if (!PostDisasmHook(capstone_instr))
+  if (cs_disasm(data_->capstone, buffer, buffer_size, address, 1, &temp_instr) == 0){
+    LOG(FATAL) << "Failed to disassemble code!";
     return nullptr;
-
-  return capstone_instr;
+  }
+  return CapstoneInstructionPtr(temp_instr, CapstoneInstructionDeleter);
 }
 
 std::string CapstoneDisassembler::SemanticFunctionName(const CapstoneInstructionPtr &capstone_instr, const std::vector<Operand> &operand_list) const noexcept {
@@ -126,13 +94,14 @@ bool CapstoneDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remi
   std::stringstream disassembly;
   disassembly << capstone_instr->mnemonic << " " << capstone_instr->op_str;
   remill_instr->disassembly = disassembly.str();
+  std::cout << "ConvertToRemillInstruction 1" << std::endl;
 
-  if (d->architecture == CS_ARCH_ARM)
+  if (data_->architecture == CS_ARCH_ARM)
     remill_instr->arch_name = kArchARM;
-  else if (d->architecture == CS_ARCH_ARM64)
+  else if (data_->architecture == CS_ARCH_ARM64)
     remill_instr->arch_name = kArchARM64;
-  else if (d->architecture == CS_ARCH_MIPS) {
-    if ((d->disasm_mode & CS_MODE_MIPS64) != 0)
+  else if (data_->architecture == CS_ARCH_MIPS) {
+    if ((data_->disasm_mode & CS_MODE_MIPS64) != 0)
       remill_instr->arch_name = kArchMips64;
     else
       remill_instr->arch_name = kArchMips32;

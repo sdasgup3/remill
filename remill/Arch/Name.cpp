@@ -38,6 +38,12 @@ ArchName GetArchName(const std::string &arch_name) {
   } else if (arch_name == "amd64_avx512") {
       return kArchAMD64_AVX512;
 
+  } else if (arch_name == "aarch64") {
+    return kArchARM64;
+
+  } else if (arch_name == "aarch64_be") {
+    return kArchARM64_BE;
+
   } else if (arch_name == "mips32") {
       return kArchMips32;
 

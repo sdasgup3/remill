@@ -6,17 +6,21 @@
 namespace remill {
 
 class ARMDisassembler final : public CapstoneDisassembler {
-  struct PrivateData;
-  std::unique_ptr<PrivateData> d;
 
   ARMDisassembler &operator=(const ARMDisassembler &other) = delete;
   ARMDisassembler(const ARMDisassembler &other) = delete;
   ARMDisassembler() = delete;
 
 public:
-  /// \todo thumb mode, endianness
+  // TODO: thumb mode, endianness
   ARMDisassembler(bool is_64_bits);
   virtual ~ARMDisassembler();
+
+  // Decode ARM instructions one at a time.
+  bool Decode(const std::unique_ptr<Instruction> &remill_instr, uint64_t address, const std::string &instr_bytes) const noexcept;
+  bool ConvertToRemillInstruction(const std::unique_ptr<Instruction> &remill_instr, const CapstoneInstructionPtr &capstone_instr) const noexcept;
+  std::string SemanticFunctionName(const CapstoneInstructionPtr &capstone_instr, const std::vector<Operand> &operand_list) const noexcept;
+
 
 private:
   std::string RegisterName(std::uintmax_t id) const noexcept;
