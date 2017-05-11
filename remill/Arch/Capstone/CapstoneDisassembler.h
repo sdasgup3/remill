@@ -60,33 +60,13 @@ public:
   /// Returns the semantic function name for the specified instruction.
   virtual std::string SemanticFunctionName(const CapstoneInstructionPtr &capstone_instr, const std::vector<Operand> &operand_list) const noexcept;
 
-  // Hooks
-  // Hooks are mandatory and must be implemented.
-
-protected:
-  /**
-    This hook is called just after the instruction has been disassembled by capstone and before it is converted to remill::Instruction.
-    \return True to continue processing the current instruction, or false to abort it.
-  */
-
-  virtual bool PostDisasmHook(const CapstoneInstructionPtr &capstone_instr) const noexcept = 0;
-
-  /**
-    This hook is called after the capstone instruction has been converted to remill::Instruction.
-    \return True to continue processing the current instruction, or false to abort it.
-  */
-
-  virtual bool PostDecodeHook(const std::unique_ptr<Instruction> &remill_instr, const CapstoneInstructionPtr &capstone_instr) const noexcept = 0;
-
-  // APIs
-  // APIs are mandatory and must be implemented.
 public:
   /**
     This method is called when a register id needs to be converted to string.
     \return True to continue processing the current instruction, or false to abort it.
   */
 
-  virtual bool RegisterName(std::string &name, std::uintmax_t id) const noexcept = 0;
+  virtual std::string RegisterName(std::uintmax_t id) const noexcept;
 
   /**
     This method is called when the class needs to obtain the size of the specified register

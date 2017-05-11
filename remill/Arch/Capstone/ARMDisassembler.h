@@ -18,22 +18,13 @@ public:
 
   // Decode ARM instructions one at a time.
   bool Decode(const std::unique_ptr<Instruction> &remill_instr, uint64_t address, const std::string &instr_bytes) const noexcept;
-  bool ConvertToRemillInstruction(const std::unique_ptr<Instruction> &remill_instr, const CapstoneInstructionPtr &capstone_instr) const noexcept;
-  std::string SemanticFunctionName(const CapstoneInstructionPtr &capstone_instr, const std::vector<Operand> &operand_list) const noexcept;
+  bool ConvertToRemillInstruction(const std::unique_ptr<Instruction> &remill_instr, const CapstoneInstructionPtr &caps_instr) const noexcept;
+  std::string SemanticFunctionName(const CapstoneInstructionPtr &caps_instr, const std::vector<Operand> &operand_list) const noexcept;
+  bool DecodeOperands(const CapstoneInstructionPtr &caps_instr, std::vector<Operand> &oprnds) const noexcept;
 
-
-private:
-  std::string RegisterName(std::uintmax_t id) const noexcept;
-
-  //
-  // CapstoneDisassembler hook interface and APIs
-  //
-protected:
-  virtual bool PostDisasmHook(const CapstoneInstructionPtr &capstone_instr) const noexcept;
-  virtual bool PostDecodeHook(const std::unique_ptr<Instruction> &remill_instr, const CapstoneInstructionPtr &capstone_instr) const noexcept;
+  std::string InstructionPredicate(const CapstoneInstructionPtr &caps_instr) const noexcept;
 
 public:
-  virtual bool RegisterName(std::string &name, std::uintmax_t id) const noexcept;
   virtual bool RegisterSize(std::size_t &size, const std::string &name) const noexcept;
   virtual bool InstructionOperands(std::vector<Operand> &operand_list, const CapstoneInstructionPtr &capstone_instr) const noexcept;
   virtual std::size_t AddressSize() const noexcept;

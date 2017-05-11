@@ -10,8 +10,8 @@
 namespace remill {
 
 void CapstoneInstructionDeleter(cs_insn *instruction) noexcept {
-  //if (instruction != nullptr)
-    //cs_free(instruction, 1);
+  if (instruction != nullptr)
+    cs_free(instruction, 1);
 }
 
 CapstoneDisassembler::CapstoneDisassembler(cs_arch arch, cs_mode mode) : data_(new PrivateData) {
@@ -36,9 +36,6 @@ bool CapstoneDisassembler::Decode(const std::unique_ptr<Instruction> &remill_ins
     return false;
 
   if (!ConvertToRemillInstruction(remill_instr, capstone_instr))
-    return false;
-
-  if (!PostDecodeHook(remill_instr, capstone_instr))
     return false;
 
   return true;
@@ -127,7 +124,8 @@ bool CapstoneDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remi
   return true;
 }
 
-Operand::Action CapstoneDisassembler::RegisterAccessType(unsigned int register_id, const CapstoneInstructionPtr &capstone_instr) const noexcept {
+Operand::Action
+CapstoneDisassembler::RegisterAccessType(unsigned int register_id, const CapstoneInstructionPtr &capstone_instr) const noexcept {
   Operand::Action action_type = Operand::kActionInvalid;
 
   for (uint8_t i = 0; i < capstone_instr->detail->regs_read_count; i++) {
@@ -148,5 +146,16 @@ Operand::Action CapstoneDisassembler::RegisterAccessType(unsigned int register_i
 
   return action_type;
 }
+
+#define NULL_STRING ""
+#define REG_INVALID 0
+
+std::string
+CapstoneDisassembler::RegisterName(std::uintmax_t id) const noexcept {
+  if(id != REG_INVALID)
+    return cs_reg_name(data_->capstone, id);
+  return NULL_STRING;
+}
+
 
 }  // remill namespace
