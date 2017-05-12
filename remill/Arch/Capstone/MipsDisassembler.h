@@ -27,7 +27,7 @@ class MipsDisassembler final : public CapstoneDisassembler {
       noexcept;
   virtual bool InstrOps(std::vector<Operand> &op_list,
                         const CapInstrPtr &cap_instr) const noexcept;
-  virtual std::size_t AddressSize() const noexcept;
+  virtual std::size_t AddressSize(void) const noexcept;
   virtual Instruction::Category InstrCategory(
       const CapInstrPtr &cap_instr) const noexcept;
 

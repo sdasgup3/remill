@@ -27,6 +27,15 @@ bool MipsDisassembler::PostDisasmHook(const CapInstrPtr &cap_instr) const
 bool MipsDisassembler::PostDecodeHook(
     const std::unique_ptr<Instruction> &rem_instr,
     const CapInstrPtr &cap_instr) const noexcept {
+  // special fixes
+  switch (cap_instr->id) {
+    // the immediate operand is always unsigned
+    case MIPS_INS_ADDIU: {
+      rem_instr->operands[2].imm.is_signed = false;
+      break;
+    }
+  }
+
   return true;
 }
 
@@ -106,7 +115,7 @@ bool MipsDisassembler::InstrOps(std::vector<Operand> &op_list,
   return true;
 }
 
-std::size_t MipsDisassembler::AddressSize() const noexcept {
+std::size_t MipsDisassembler::AddressSize(void) const noexcept {
   return d->address_size;
 }
 

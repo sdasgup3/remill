@@ -20,51 +20,37 @@
 namespace {
 
 /*
-  if NotWordValue(GPR[rs]) or NotWordValue(GPR[rt]) then
-    UNPREDICTABLE
-  endif
+  Format
+    001001 rs rt immediate
 
-  temp ← GPR[rs] + GPR[rt]
-  GPR[rd] ← sign_extend(temp 31..0)
+  Pseudo code
+    if NotWordValue(GPR[rs]) then
+      UNPREDICTABLE
+    endif
+
+    temp <- GPR[rs] + sign_extend(immediate)
+    GPR[rt] <- sign_extend(temp_31..0)
+
+  Notes
+    The immediate is always 16-bits long. The semantic name
+    is generated from the remill's instruction operands, meaning
+    that immediate values are always 64 bits.
 */
 
 template <typename D, typename S1, typename S2>
-DEF_SEM(ADDU_IMPL, D dst, S1 src1, S2 src2) {
+DEF_SEM(ADDIU, D dst, S1 src1, S2 src2) {
   auto lhs = Read(src1);
   auto rhs = Read(src2);
   auto sum = UAdd(lhs, rhs);
-  WriteZExt(dst, sum);
+  Write(dst, sum);
   return memory;
 }
 
-DEF_ISEL_MnW_Mn_Rn(ADDU, ADDU_IMPL);
-
-/*
-  if NotWordValue(GPR[rs]) or NotWordValue(GPR[rt]) then
-    UNPREDICTABLE
-  endif
-
-  temp ← (GPR[rs] 31 ||GPR[rs] 31..0) + (GPR[rt] 31 ||GPR[rt] 31..0)
-  if temp 32 ≠ temp 31 then
-    SignalException(IntegerOverflow)
-  else
-    GPR[rd] ← sign_extend(temp 31..0)
-  endif
-*/
-
-template <typename D, typename S1, typename S2>
-DEF_SEM(ADD_IMPL, D dst, S1 src1, S2 src2) {
-  auto lhs = Read(src1);
-  auto rhs = Read(src2);
-  auto sum = UAdd(lhs, rhs);
-
-  RaiseException(((sum >> 31) & 1) != ((sum >> 30) & 1), IntegerOverflow);
-
-  WriteZExt(dst, sum);
-  return memory;
-}
-
-DEF_ISEL_MnW_Mn_Rn(ADD, ADD_IMPL);
+#if ADDRESS_SIZE_BITS == 32
+DEF_ISEL(ADDIU_R32_R32_UI64) = ADDIU<R32W, R32, I32>;
+#else
+DEF_ISEL(ADDIU_R64_R64_UI64) = ADDIU<R64W, R64, I64>;
+#endif
 
 }  // namespace
 
