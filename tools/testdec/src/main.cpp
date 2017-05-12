@@ -108,43 +108,43 @@ int main(int argc, char *argv[], char *envp[]) {
 
       std::cout << "   proc sub_" << std::hex << virtual_address << std::endl;
 
-      while (true) {
-        std::array<std::uint8_t, 32> buffer;
-        elf_parser.read(virtual_address, buffer.data(), buffer.size());
+      std::string buffer;
+      buffer.resize(32);
 
-        auto capstone_instr =
-            disasm->Disassemble(virtual_address, buffer.data(), buffer.size());
-        if (!capstone_instr) {
+      while (true) {
+        elf_parser.read(virtual_address,
+                        reinterpret_cast<std::uint8_t *>(&buffer[0]),
+                        buffer.size());
+
+        std::unique_ptr<remill::Instruction> remill_instr(
+            new remill::Instruction);
+        if (!disasm->Decode(remill_instr, virtual_address, buffer)) {
           std::cout
               << "     ; Failed to disassemble the instruction at vaddr 0x"
               << std::hex << virtual_address << std::endl;
           break;
         }
 
-        std::vector<remill::Operand> operand_list;
-        if (!disasm->InstrOps(operand_list, capstone_instr))
-          throw std::runtime_error(
-              "Failed to convert the instruction operands");
-
-        std::string semantic_function =
-            disasm->SemFuncName(capstone_instr, operand_list);
-
-        if (IsFuncSemImplemented(semantic_function, llvm_module))
+        if (IsFuncSemImplemented(remill_instr->function, llvm_module))
           std::cout << "   ";
         else
           std::cout << "x  ";
 
-        PrintCapInstr(address_size, capstone_instr, semantic_function);
-        virtual_address += capstone_instr->size;
+        auto capstone_instr = disasm->Disassemble(
+            virtual_address, reinterpret_cast<std::uint8_t *>(&buffer[0]),
+            buffer.size());
+        assert(capstone_instr);
+        PrintCapInstr(address_size, capstone_instr, remill_instr->function);
 
-        auto instr_category = disasm->InstrCategory(capstone_instr);
+        virtual_address = remill_instr->next_pc;
+
+        auto instr_category = remill_instr->category;
         if (instr_category ==
             remill::Instruction::kCategoryDirectFunctionCall) {
-          std::vector<remill::Operand> op_list;
-          if (disasm->InstrOps(op_list, capstone_instr) &&
-              op_list.size() == 1 &&
-              op_list[0].type == remill::Operand::kTypeImmediate) {
-            std::uintmax_t call_dest = op_list[0].imm.val;
+          if (remill_instr->operands.size() == 1 &&
+              remill_instr->operands[0].type ==
+                  remill::Operand::kTypeImmediate) {
+            std::uintmax_t call_dest = remill_instr->operands[0].imm.val;
 
             if (std::find(func_list.begin(), func_list.end(), call_dest) ==
                 func_list.end())

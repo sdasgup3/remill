@@ -29,7 +29,7 @@ class CapstoneDisassembler {
 
   /// decodes exactly one instruction from the specified buffer.
   bool Decode(const std::unique_ptr<Instruction> &rem_instr, uint64_t vaddr,
-              const std::string &size) const noexcept;
+              const std::string &instr_bytes) const noexcept;
 
   /// Disassembles the specified buffer trying to return exactly one opcode.
   CapInstrPtr Disassemble(std::uint64_t vaddr, const std::uint8_t *buf,
