@@ -58,15 +58,15 @@ CapstoneDisassembler::CapstoneDisassembler(cs_arch arch, cs_mode mode)
 CapstoneDisassembler::~CapstoneDisassembler() { cs_close(&d->capstone); }
 
 bool CapstoneDisassembler::Decode(const std::unique_ptr<Instruction> &rem_instr,
-                                  uint64_t vaddr, const std::string &size) const
+                                  uint64_t vaddr,
+                                  const std::string &instr_bytes) const
     noexcept {
   CapInstrPtr cap_instr = Disassemble(
-      vaddr, reinterpret_cast<const std::uint8_t *>(size.data()), size.size());
+      vaddr, reinterpret_cast<const std::uint8_t *>(instr_bytes.data()),
+      instr_bytes.size());
+
   if (!cap_instr) return false;
-
   if (!ConvertToRemInstr(rem_instr, cap_instr)) return false;
-
-  if (!PostDecodeHook(rem_instr, cap_instr)) return false;
 
   return true;
 }
@@ -109,7 +109,7 @@ std::string CapstoneDisassembler::SemFuncName(
       }
 
       case Operand::kTypeImmediate: {
-        func_name << "_I" << (operand.imm.is_signed ? "i" : "u") << "64";
+        func_name << "_" << (operand.imm.is_signed ? "S" : "U") << "I64";
         break;
       }
 
@@ -156,6 +156,8 @@ bool CapstoneDisassembler::ConvertToRemInstr(
   rem_instr->operands.clear();
   CHECK(InstrOps(rem_instr->operands, cap_instr))
       << "Unsupported instruction operand encountered";
+
+  if (!PostDecodeHook(rem_instr, cap_instr)) return false;
 
   rem_instr->function = SemFuncName(cap_instr, rem_instr->operands);
   return true;
