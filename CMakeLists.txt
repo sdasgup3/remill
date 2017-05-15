@@ -200,8 +200,9 @@ add_custom_target(semantics)
 add_subdirectory(remill/Arch/X86/Runtime)
 add_subdirectory(remill/Arch/Mips/Runtime)
 
-# mips tools
+# developments tools
 add_subdirectory(tools/testdec)
+add_subdirectory(tools/testsem)
 
 # mcsema needs to be manually cloned into this repo.
 if (EXISTS ${CMAKE_SOURCE_DIR}/tools/mcsema)
