@@ -106,7 +106,8 @@ struct alignas(8) GPR final {
   volatile uint64_t _31;
   Reg R31;
 
-  // Program counter of the CURRENT instruction!
+  // In Aarch64, program counters are special registers;
+  // In Aarch32, it can be accessed as general purpose registers.
   Reg rip;
 } __attribute__((packed));
 
@@ -117,10 +118,10 @@ union alignas(8) ProcState final {
   uint64_t flat;
   struct {
                     //  bit 0
-    uint32_t N:1;   //  Negative condition flag
-    uint32_t Z:1;   //  Zero condition flag
-    uint32_t C:1;   //  Carry condition flag
-    uint32_t V:1;   //  Overflow condition flag
+    uint32_t nf:1;   //  Negative condition flag
+    uint32_t zf:1;   //  Zero condition flag
+    uint32_t cf:1;   //  Carry condition flag
+    uint32_t vf:1;   //  Overflow condition flag
 
                     //  bit 4
     uint32_t D:1;   //  Debug mask bit [AArch64 only]

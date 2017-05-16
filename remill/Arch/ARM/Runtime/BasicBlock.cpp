@@ -32,7 +32,12 @@ Memory *__remill_basic_block(Memory *memory, State &state, addr_t curr_pc) {
   // Note: These variables MUST be defined for all architectures.
   auto &STATE = state;
   auto &MEMORY = *memory;
-  auto &PC = state.gpr.rip.IF_64BIT_ELSE(qword, dword);
+#if 64 == ADDRESS_SIZE_BITS
+  auto &PC = state.gpr.rip.qword;
+#else
+  auto &PC = state.gpr.R15.dword;
+#endif
+
   auto &BRANCH_TAKEN = branch_taken;
 
   // `PC` should already have the correct value, but it's nice to make sure
@@ -82,10 +87,6 @@ Memory *__remill_basic_block(Memory *memory, State &state, addr_t curr_pc) {
   auto &W29 = state.gpr.R29.dword;
   auto &W30 = state.gpr.R30.dword;
 
-  auto &WZR = state.gpr.R31.dword;
-  auto &WIP = state.gpr.rip.dword;
-
-#if 64 == ADDRESS_SIZE_BITS
   auto &X0 = state.gpr.R0.qword;
   auto &X1 = state.gpr.R1.qword;
   auto &X2 = state.gpr.R2.qword;
@@ -125,9 +126,14 @@ Memory *__remill_basic_block(Memory *memory, State &state, addr_t curr_pc) {
   auto &X29 = state.gpr.R29.qword;
   auto &X30 = state.gpr.R30.qword;
 
+  auto &WZR = state.gpr.R31.dword;
   auto &XZR = state.gpr.R31.qword;
-  auto &XIP = state.gpr.rip.dword;
-#endif
+
+  auto &WSP = state.gpr.R31.dword;
+  auto &SP  = state.gpr.R31.qword;
+
+  auto &LR = state.gpr.R30.qword;
+
 #if 0
   // Arithmetic flags. Data-flow analyses will clear these out ;-)
   auto &AF = state.aflag.af;

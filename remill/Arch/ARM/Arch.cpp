@@ -25,15 +25,11 @@
 #include "remill/Arch/Name.h"
 #include "remill/Arch/ARM/Arch.h"
 #include "remill/Arch/ARM/Runtime/State.h"
+#include <remill/Arch/Capstone/ARMDisassembler.h>
 #include "remill/BC/Version.h"
 #include "remill/OS/OS.h"
-#include <remill/Arch/Capstone/ARMDisassembler.h>
-
 
 namespace remill {
-namespace {
-
-}
 
 struct ARMArch::PrivateData final {
   OSName os_name_;
@@ -117,11 +113,8 @@ void ARMArch::PrepareModule(llvm::Module *mod) const {
 
 // Decode ARM instructions.
 Instruction *ARMArch::DecodeInstruction(uint64_t address, const std::string &instr_bytes) const {
-  //auto instr = new Instruction;
   std::unique_ptr<Instruction> instr(new Instruction);
   data->disass_->Decode(instr, address, instr_bytes);
-  std::cout << std::hex << "Decoding ARM instructions done " << instr->next_pc << std::endl;
-  std::cout << std::hex << instr->function << "\t" << instr->disassembly << std::endl;
   return instr.release();
 }
 
@@ -129,7 +122,7 @@ Instruction *ARMArch::DecodeInstruction(uint64_t address, const std::string &ins
 uint64_t ARMArch::ProgramCounter(const ArchState *state_) const {
   auto state = reinterpret_cast<const State *>(state_);
   if (32 == address_size) {
-    return state->gpr.rip.dword;
+    return state->gpr.R15.dword;
   } else {
     return state->gpr.rip.qword;
   }

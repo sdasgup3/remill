@@ -23,7 +23,7 @@ public:
   bool DecodeOperands(const CapstoneInstructionPtr &caps_instr, std::vector<Operand> &oprnds) const noexcept;
 
   std::string InstructionPredicate(const CapstoneInstructionPtr &caps_instr) const noexcept;
-
+  bool  DecodeOpBits(const CapstoneInstructionPtr &cap_instr) const noexcept;
 public:
   virtual bool RegisterSize(std::size_t &size, const std::string &name) const noexcept;
   virtual bool InstructionOperands(std::vector<Operand> &operand_list, const CapstoneInstructionPtr &capstone_instr) const noexcept;

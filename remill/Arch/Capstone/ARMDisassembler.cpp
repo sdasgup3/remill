@@ -153,18 +153,36 @@ ARMDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remill::Instru
   return true;
 }
 
+bool
+ARMDisassembler::DecodeOpBits(const CapstoneInstructionPtr &cap_instr) const noexcept
+{
+  bool opbits = false;
+  if(data_->address_space == 64) {
+    if((cap_instr->id != ARM64_INS_RET) &&
+        (cap_instr->id != ARM64_INS_SUB) &&
+        (cap_instr->id != ARM64_INS_STR) ) {
+      opbits = ((cap_instr->bytes[3] & 0x40) >> 6) ? 1 : 0;
+    }
+  }
+  return opbits;
+}
+
 std::string
 ARMDisassembler::SemanticFunctionName(const CapstoneInstructionPtr &cap_instr,
                                       const std::vector<Operand> &operand_list) const noexcept
 {
-  bool sbit = false;
+  //bool sbit = false;
   std::string mnemonic = cap_instr->mnemonic;
   std::transform(mnemonic.begin(), mnemonic.end(), mnemonic.begin(), ::toupper);
   StripInstructionName(mnemonic);
   std::stringstream function_name;
   function_name << mnemonic;
   function_name << InstructionPredicate(cap_instr);
+  auto opbit = DecodeOpBits(cap_instr);
 
+  if (opbit) function_name << "_OP1";
+
+#if 0
   if(data_->address_space == 32) {
     auto arm = &(cap_instr->detail->arm);
     sbit = arm->update_flags;
@@ -172,9 +190,9 @@ ARMDisassembler::SemanticFunctionName(const CapstoneInstructionPtr &cap_instr,
     auto arm64 = &(cap_instr->detail->arm64);
     sbit = arm64->update_flags;
   }
-
+#endif
   // Add S bit state with the function name
-  if(sbit) function_name << "_S1";
+  //if(sbit) function_name << "_S1";
 
   for (const Operand &operand : operand_list) {
     switch (operand.type) {
@@ -188,7 +206,7 @@ ARMDisassembler::SemanticFunctionName(const CapstoneInstructionPtr &cap_instr,
       }
 
       case Operand::kTypeImmediate: {
-        function_name << "_I" << (operand.imm.is_signed ? "i" : "u") << "64";
+        function_name << "_I" << "64";
         break;
       }
 
@@ -234,6 +252,8 @@ ARMDisassembler::DecodeOperands(const CapstoneInstructionPtr &caps_instr,
         }
       }
     } else if (data_->address_space == 64){
+      auto sfbit = ((caps_instr->bytes[3] & 0x80) >> 7);
+      auto variant_size = sfbit ? 8 : 4;
       auto arm64_ = &(caps_instr->detail->arm64);
       auto num_operands = arm64_->op_count;
 
@@ -246,8 +266,8 @@ ARMDisassembler::DecodeOperands(const CapstoneInstructionPtr &caps_instr,
           case ARM64_OP_REG: {
             Operand op;
             op.type = Operand::kTypeRegister;
-            op.size = 8;
-            op.reg.size = 8;
+            op.size = variant_size;
+            op.reg.size = variant_size;
             op.reg.name = RegisterName(arm64_operand.reg);
             std::transform(op.reg.name.begin(), op.reg.name.end(), op.reg.name.begin(), ::toupper);
             oprnds.push_back(op);
