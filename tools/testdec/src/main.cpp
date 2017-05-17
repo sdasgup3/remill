@@ -49,7 +49,7 @@ int main(int argc, char *argv[], char *envp[]) {
                  "best to use it with test executables compiled "
                  "using -nostdlib\n\n"
                  "Usage:\n"
-                 "\tmipsdec /path/to/executable /path/to/semantics.bc\n";
+                 "\ttestdec /path/to/executable /path/to/semantics.bc\n";
 
     return 1;
   }

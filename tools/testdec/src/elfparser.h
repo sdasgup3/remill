@@ -1,5 +1,5 @@
-#ifndef MIPSDEC_ELFPARSER_H
-#define MIPSDEC_ELFPARSER_H
+#ifndef TESTDEC_ELFPARSER_H
+#define TESTDEC_ELFPARSER_H
 
 #include <cstdint>
 #include <memory>
@@ -47,4 +47,4 @@ class ELFParser final {
                        std::uintmax_t vaddr) const noexcept;
 };
 
-#endif  // MIPSDEC_ELFPARSER_H
+#endif  // TESTDEC_ELFPARSER_H
