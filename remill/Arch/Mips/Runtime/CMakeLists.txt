@@ -2,8 +2,11 @@ cmake_minimum_required (VERSION 3.2)
 project(mips_runtime BC)
 
 set(MIPSRUNTIME_SOURCEFILES
-    Instructions.cpp
     BasicBlock.cpp
+    Common.cpp
+
+    Semantics/ADDIU.cpp
+    Semantics/SW.cpp
 )
 
 set_source_files_properties(Instructions.cpp PROPERTIES COMPILE_FLAGS "-O3 -g0")

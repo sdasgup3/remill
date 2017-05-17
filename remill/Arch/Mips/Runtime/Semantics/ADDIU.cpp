@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-#ifndef REMILL_ARCH_MIPS_SEMANTICS_ADD_H_
-#define REMILL_ARCH_MIPS_SEMANTICS_ADD_H_
+#include "remill/Arch/Mips/Runtime/Common.h"
+
+#ifndef REMILL_ARCH_MIPS_SEMANTICS_ADDIU_H_
+#define REMILL_ARCH_MIPS_SEMANTICS_ADDIU_H_
 
 namespace {
 
@@ -54,4 +56,4 @@ DEF_ISEL(ADDIU_R64_R64_UI64) = ADDIU<R64W, R64, I64>;
 
 }  // namespace
 
-#endif  // REMILL_ARCH_MIPS_SEMANTICS_ADD_H_
+#endif  // REMILL_ARCH_MIPS_SEMANTICS_ADDIU_H_
