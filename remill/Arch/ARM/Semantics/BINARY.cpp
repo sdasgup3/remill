@@ -29,6 +29,7 @@ ALWAYS_INLINE static void WriteFlagsAddSub(State &state, T lhs, T rhs, T res) {
   WriteFlagsIncDec<Tag>(state, lhs, rhs, res);
 }
 }
+
 namespace {
 
 template <typename D, typename S1, typename S2>
@@ -68,6 +69,19 @@ DEF_ISEL(SUB_R64_R64_R64) = SUB<R64W, R64, R64>;
 DEF_ISEL(SUB_R32_R32_R32) = SUB<R32W, R32, R32>;
 DEF_ISEL(SUB_R64_R64_I64) = SUB<R64W, R64, I64>;
 
+namespace {
+
+template <typename D, typename S1, typename S2>
+DEF_SEM(ASR, D dst, S1 src1, S2 src2) {
+  static_cast<void>(dst);
+  static_cast<void>(src1);
+  static_cast<void>(src2);
+  return memory;
+}
+
+}
+
+DEF_ISEL(ASR_R64_R64_I64) = ASR<R64W, R64, I64>;
 
 namespace {
 
@@ -117,7 +131,7 @@ DEF_SEM(CMP, S1 src1, S2 src2) {
 }
 
 template <typename S1, typename S2>
-DEF_SEM(CMP_S1, S1 src1, S2 src2) {
+DEF_SEM(CMPS, S1 src1, S2 src2) {
   auto lhs = Read(src1);
   auto rhs = Read(src2);
   auto sum = USub(lhs, rhs);
@@ -125,11 +139,30 @@ DEF_SEM(CMP_S1, S1 src1, S2 src2) {
   return memory;
 }
 
+template <typename S1, typename S2>
+DEF_SEM(CBZ, S1 src1, S2 src2) {
+  static_cast<void>(src1);
+  static_cast<void>(src2);
+  return memory;
+}
+
+template <typename S1, typename S2>
+DEF_SEM(CBNZ, S1 src1, S2 src2) {
+  static_cast<void>(src1);
+  static_cast<void>(src2);
+  return memory;
+}
+
 }  // namespace
 
 DEF_ISEL(CMP_R64_R64) = CMP<R64, R64>;
-DEF_ISEL(CMP_S1_R64_R64) = CMP_S1<R64, R64>;
-DEF_ISEL(CMP_S1_R64_I64) = CMP_S1<R64, I64>;
+DEF_ISEL(CMP_R64_I64) = CMP<R64, I64>;
+
+DEF_ISEL(CMPS_R64_R64) = CMPS<R64, R64>;
+DEF_ISEL(CMPS_R64_I64) = CMPS<R64, I64>;
+DEF_ISEL(CBZ_R64_I64) = CBZ<R64, I64>;
+DEF_ISEL(CBNZ_R64_I64) = CBNZ<R64, I64>;
+DEF_ISEL(CBNZ_R32_I32) = CBNZ<R32, I32>;
 
 DEF_ISEL(ADRP_R64_I64) = SUB<R64W, R64, I64>;
 DEF_ISEL(SUB_R64_R64) = SUB<R64W, R64, R64>;

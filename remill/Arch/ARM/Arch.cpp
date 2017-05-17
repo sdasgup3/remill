@@ -57,7 +57,6 @@ ARMArch::~ARMArch(void) {}
 void ARMArch::PrepareModule(llvm::Module *mod) const {
   std::string dl;
   std::string triple;
-  std::cout << std::hex << "Prepare module to load " << std::endl;
 
   switch(os_name){
     case kOSInvalid:

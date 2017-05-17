@@ -132,7 +132,7 @@ ARMDisassembler::ConvertToRemillInstruction(const std::unique_ptr<remill::Instru
 
   disassembly << cap_instr->mnemonic << " " << cap_instr->op_str;
   remill_instr->disassembly = disassembly.str();
-  std::cout << cap_instr->mnemonic <<std::endl;
+  //std::cout << cap_instr->mnemonic <<std::endl;
 
   if (data_->architecture == CS_ARCH_ARM)
     remill_instr->arch_name = kArchARM;
@@ -160,7 +160,14 @@ ARMDisassembler::DecodeOpBits(const CapstoneInstructionPtr &cap_instr) const noe
   if(data_->address_space == 64) {
     if((cap_instr->id != ARM64_INS_RET) &&
         (cap_instr->id != ARM64_INS_SUB) &&
-        (cap_instr->id != ARM64_INS_STR) ) {
+        (cap_instr->id != ARM64_INS_STR) &&
+        (cap_instr->id != ARM64_INS_LDR) &&
+        (cap_instr->id != ARM64_INS_BLR) &&
+        (cap_instr->id != ARM64_INS_B) &&
+        (cap_instr->id != ARM64_INS_BR) &&
+        (cap_instr->id != ARM64_INS_NOP) &&
+        (cap_instr->id != ARM64_INS_CMP) &&
+        (cap_instr->id != ARM64_INS_MOVZ) ) {
       opbits = ((cap_instr->bytes[3] & 0x40) >> 6) ? 1 : 0;
     }
   }
@@ -206,7 +213,7 @@ ARMDisassembler::SemanticFunctionName(const CapstoneInstructionPtr &cap_instr,
       }
 
       case Operand::kTypeImmediate: {
-        function_name << "_I" << "64";
+        function_name << "_I" << operand.size*8;
         break;
       }
 
@@ -277,7 +284,7 @@ ARMDisassembler::DecodeOperands(const CapstoneInstructionPtr &caps_instr,
             Operand op;
             op.type = Operand::kTypeImmediate;
             op.action = Operand::kActionRead;
-            op.size = 64;
+            op.size = variant_size;
             op.imm.is_signed = true;
             op.imm.val = arm64_operand.imm;
             oprnds.push_back(op);
@@ -286,11 +293,14 @@ ARMDisassembler::DecodeOperands(const CapstoneInstructionPtr &caps_instr,
           case ARM64_OP_MEM: { // = CS_OP_MEM (Memory operand).
             Operand op;
             op.type = Operand::kTypeAddress;
-            op.size = 64;
+            op.size = variant_size;
+            op.addr.address_size = variant_size;
             op.addr.base_reg.name = RegisterName(arm64_operand.mem.base);
+            std::transform(op.addr.base_reg.name.begin(), op.addr.base_reg.name.end(), op.addr.base_reg.name.begin(), ::toupper);
             op.addr.index_reg.name = RegisterName(arm64_operand.mem.index);
+            std::transform(op.addr.index_reg.name.begin(), op.addr.index_reg.name.end(), op.addr.index_reg.name.begin(), ::toupper);
             op.addr.displacement = arm64_operand.mem.disp;
-
+            oprnds.push_back(op);
             break;
           }
           case ARM64_OP_FP:  // = CS_OP_FP (Floating-Point operand).
