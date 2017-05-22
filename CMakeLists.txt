@@ -136,7 +136,7 @@ find_package(XED REQUIRED)
 list(APPEND PROJECT_LIBRARIES ${XED_LIBRARIES})
 list(APPEND PROJECT_INCLUDEDIRECTORIES ${XED_INCLUDE_DIRS})
 
-# google log module
+# glog
 find_package(glog REQUIRED)
 list(APPEND PROJECT_LIBRARIES glog::glog)
 
@@ -144,15 +144,27 @@ list(APPEND PROJECT_LIBRARIES glog::glog)
 find_package(gflags REQUIRED)
 list(APPEND PROJECT_LIBRARIES gflags)
 
+# capstone
+find_package(capstone REQUIRED)
+list(APPEND PROJECT_LIBRARIES ${CAPSTONE_LIBRARIES})
+list(APPEND PROJECT_INCLUDEDIRECTORIES ${CAPSTONE_INCLUDE_DIRS})
+
 #
 # target settings
 #
 
 list(APPEND PROJECT_DEFINITIONS "INSTALL_SEMANTICS_DIR=\"${CMAKE_INSTALL_PREFIX}share/remill/semantics/\"")
 list(APPEND PROJECT_DEFINITIONS "BUILD_SEMANTICS_DIR=\"${CMAKE_CURRENT_BINARY_DIR}/remill/Arch/X86/Runtime/\"")
+list(APPEND PROJECT_DEFINITIONS "BUILD_SEMANTICS_DIR_ARM=\"${CMAKE_CURRENT_BINARY_DIR}/remill/Arch/ARM/Runtime/\"")
 
 add_library(${PROJECT_NAME} STATIC
+    remill/Arch/Capstone/CapstoneDisassembler.cpp
+    remill/Arch/Capstone/MipsDisassembler.cpp
+    remill/Arch/Capstone/ARMDisassembler.cpp
+    
     remill/Arch/X86/Arch.cpp
+    remill/Arch/ARM/Arch.cpp
+    remill/Arch/Mips/Arch.cpp
     remill/Arch/Arch.cpp
     remill/Arch/Instruction.cpp
     remill/Arch/Name.cpp
@@ -186,13 +198,19 @@ install(DIRECTORY DESTINATION "share/remill")
 #
 
 add_custom_target(semantics)
+
+# runtimes
 add_subdirectory(remill/Arch/X86/Runtime)
+add_subdirectory(remill/Arch/ARM/Runtime)
+add_subdirectory(remill/Arch/Mips/Runtime)
+
+# mips tools
+#add_subdirectory(tools/testdec)
 
 # mcsema needs to be manually cloned into this repo.
 if (EXISTS ${CMAKE_SOURCE_DIR}/tools/mcsema)
     add_subdirectory(tools/mcsema)
 endif ()
-
 
 # only enable tests when compiling under x64
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)

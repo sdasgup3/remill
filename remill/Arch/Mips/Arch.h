@@ -14,33 +14,33 @@
  * limitations under the License.
  */
 
-#ifndef REMILL_ARCH_NAME_H_
-#define REMILL_ARCH_NAME_H_
+#ifndef REMILL_ARCH_MIPS_ARCH_H_
+#define REMILL_ARCH_MIPS_ARCH_H_
 
-#include <string>
+#include "remill/Arch/Arch.h"
+#include <memory>
+#include <capstone/capstone.h>
 
 namespace remill {
 
-enum ArchName : uint32_t {
-  kArchInvalid,
-  kArchX86,
-  kArchX86_AVX,
-  kArchX86_AVX512,
-  kArchMips32,
-  kArchMips64,
-  kArchARM,
-  kArchARM64,
-  kArchARM64_BE,
-  kArchAMD64,
-  kArchAMD64_AVX,
-  kArchAMD64_AVX512
+class MipsArch : public Arch {
+  struct PrivateData;
+  std::unique_ptr<PrivateData> d;
+
+ public:
+  MipsArch(OSName os_name_, ArchName arch_name_);
+  MipsArch(void) = delete;
+  virtual ~MipsArch(void);
+
+  //
+  // remill::Arch interface
+  //
+
+  void PrepareModule(llvm::Module *mod) const override;
+  uint64_t ProgramCounter(const ArchState *state) const override;
+  Instruction *DecodeInstruction(uint64_t address, const std::string &instr_bytes) const override;
 };
-
-// Convert the string name of an architecture into a canonical form.
-ArchName GetArchName(const std::string &arch_name);
-
-std::string GetArchName(ArchName);
 
 }  // namespace remill
 
-#endif  // REMILL_ARCH_NAME_H_
+#endif  // REMILL_ARCH_MIPS_ARCH_H_

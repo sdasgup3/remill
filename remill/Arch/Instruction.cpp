@@ -139,6 +139,21 @@ std::string Instruction::Serialize(void) const {
     case kArchX86_AVX512:
       ss << "X86_";
       break;
+    case kArchMips32:
+      ss << "MIPS32_";
+      break;
+    case kArchMips64:
+      ss << "MIPS64_";
+      break;
+    case kArchARM:
+      ss << "ARM_";
+      break;
+    case kArchARM64:
+      ss << "AARCH64_";
+      break;
+    case kArchARM64_BE:
+      ss << "AARCH64_BE_";
+      break;
   }
   ss << "INSTR 0x" << std::hex << pc << " "
      << std::dec << (next_pc - pc) << " ";

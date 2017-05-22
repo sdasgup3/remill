@@ -29,8 +29,12 @@ class SyncHyperCall {
 
     kX86EmulateInstruction,
     kAMD64EmulateInstruction,
+    kMipsEmulateInstruction,
 
     kAssertPrivileged,
+    kDebugBreakpoint,
+
+    kIntegerOverflow  // MIPS-specific.
   };
 } __attribute__((packed));
 

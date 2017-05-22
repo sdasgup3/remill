@@ -224,6 +224,8 @@ class Instruction {
 
  private:
   friend class X86Arch;
+  friend class ARMArch;
+  friend class MipsArch;
 
   Instruction(void);
 };
