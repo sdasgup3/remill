@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include <glog/logging.h>
 #include <gflags/gflags.h>
+#include <glog/logging.h>
 
 #include <memory>
 #include <unordered_map>
@@ -24,9 +24,11 @@
 #include "remill/Arch/Name.h"
 #include "remill/OS/OS.h"
 
-DEFINE_string(arch, "", "Architecture of the code being translated. "
-                        "Valid architectures: x86, amd64 (with or without "
-                        "`_avx` or `_avx512` appended).");
+DEFINE_string(arch, "",
+              "Architecture of the code being translated. "
+              "Valid architectures: x86, amd64 (with or without "
+              "`_avx` or `_avx512` appended), arm, arm64, "
+              "mips32, mips64");
 
 DECLARE_string(os);
 
@@ -36,8 +38,7 @@ namespace {
 static unsigned AddressSize(ArchName arch_name) {
   switch (arch_name) {
     case kArchInvalid:
-      LOG(FATAL)
-          << "Cannot get address size for invalid arch.";
+      LOG(FATAL) << "Cannot get address size for invalid arch.";
       return 0;
     case kArchX86:
     case kArchX86_AVX:
@@ -72,10 +73,22 @@ Arch::~Arch(void) {}
 const Arch *Arch::Get(OSName os_name_, ArchName arch_name_) {
   switch (arch_name_) {
     case kArchInvalid:
-    case kArchARM:
-    case kArchARM64:
       LOG(FATAL) << "Unrecognized architecture.";
       return nullptr;
+
+    case kArchARM:
+    case kArchARM64: {
+      static ArchCache gArchARM;
+      auto &arch = gArchARM[os_name_];
+      if (!arch) {
+        std::string message("Using architecture: ARM");
+        message += (arch_name_ == kArchARM ? "" : "64");
+
+        DLOG(INFO) << message;
+        arch = ArchPtr(GetARM(os_name_, arch_name_));
+      }
+      return arch.get();
+    }
 
     case kArchX86: {
       static ArchCache gArchX86;

@@ -19,7 +19,6 @@
 namespace remill {
 
 ArchName GetArchName(const std::string &arch_name) {
-
   if (arch_name == "x86") {
     return kArchX86;
 
@@ -36,13 +35,19 @@ ArchName GetArchName(const std::string &arch_name) {
     return kArchAMD64_AVX;
 
   } else if (arch_name == "amd64_avx512") {
-      return kArchAMD64_AVX512;
+    return kArchAMD64_AVX512;
+
+  } else if (arch_name == "ARM64") {
+    return kArchARM64;
+
+  } else if (arch_name == "ARM") {
+    return kArchARM;
 
   } else if (arch_name == "mips32") {
-      return kArchMips32;
+    return kArchMips32;
 
   } else if (arch_name == "mips64") {
-      return kArchMips64;
+    return kArchMips64;
 
   } else {
     return kArchInvalid;

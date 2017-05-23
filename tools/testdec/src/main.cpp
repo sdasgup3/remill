@@ -79,8 +79,13 @@ int main(int argc, char *argv[], char *envp[]) {
         enable_thumb_mode = true;
       }
 
-      disasm.reset(
-          new remill::ARMDisassembler(elf_parser.is64bit(), enable_thumb_mode));
+      disasm.reset(new remill::ARMDisassembler(elf_parser.is64bit()));
+
+      {
+        remill::ARMDisassembler *arm_disassembler =
+            reinterpret_cast<remill::ARMDisassembler *>(disasm.get());
+        arm_disassembler->EnableThumbMode(enable_thumb_mode);
+      }
 
       std::cout << "Architecture: " << (arch == EM_ARM ? "ARM" : "AArch64")
                 << std::endl;

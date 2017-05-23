@@ -16,13 +16,6 @@ typedef std::unique_ptr<cs_insn, std::function<void(cs_insn *)>> CapInstrPtr;
 /// This class is abstract and can't be used directly; you will have to inherit
 /// from this and specialize it for your architecture
 class CapstoneDisassembler {
-  struct PrivateData;
-  std::unique_ptr<PrivateData> d;
-
-  CapstoneDisassembler(const CapstoneDisassembler &other) = delete;
-  CapstoneDisassembler &operator=(const CapstoneDisassembler &other) = delete;
-  CapstoneDisassembler() = delete;
-
  public:
   CapstoneDisassembler(cs_arch arch, cs_mode mode);
   virtual ~CapstoneDisassembler();
@@ -64,6 +57,9 @@ class CapstoneDisassembler {
   // Hooks are mandatory and must be implemented.
 
  protected:
+  /// returns the capstone handle
+  csh GetCapstoneHandle() const noexcept;
+
   /**
     This hook is called just after the instruction has been disassembled by
     capstone and before it is converted to remill::Instruction.
@@ -120,6 +116,14 @@ class CapstoneDisassembler {
   /// Returns the instruction category
   virtual Instruction::Category InstrCategory(
       const CapInstrPtr &cap_instr) const noexcept = 0;
+
+ private:
+  struct PrivateData;
+  std::unique_ptr<PrivateData> d;
+
+  CapstoneDisassembler(const CapstoneDisassembler &other) = delete;
+  CapstoneDisassembler &operator=(const CapstoneDisassembler &other) = delete;
+  CapstoneDisassembler() = delete;
 };
 
 }  // namespace remill

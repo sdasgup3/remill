@@ -47,8 +47,7 @@ class Arch {
 
   // Decode an instruction.
   virtual Instruction *DecodeInstruction(
-      uint64_t address,
-      const std::string &instr_bytes) const = 0;
+      uint64_t address, const std::string &instr_bytes) const = 0;
 
   virtual uint64_t ProgramCounter(const ArchState *state) const = 0;
 
@@ -61,12 +60,14 @@ class Arch {
   Arch(OSName os_name_, ArchName arch_name_);
 
  private:
-
   // Defined in `remill/Arch/X86/Arch.cpp`.
   static const Arch *GetX86(OSName os, ArchName arch_name);
 
   // Defined in `remill/Arch/Mips/Arch.cpp`.
   static const Arch *GetMips(OSName os, ArchName arch_name);
+
+  // Defined in `remill/Arch/ARM/Arch.cpp`.
+  static const Arch *GetARM(OSName os, ArchName arch_name);
 
   Arch(void) = delete;
 };

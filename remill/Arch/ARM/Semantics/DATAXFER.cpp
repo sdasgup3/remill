@@ -14,36 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef REMILL_ARCH_NAME_H_
-#define REMILL_ARCH_NAME_H_
+namespace {
+template <typename D, typename S>
+DEF_SEM(MOV, D dst, const S src) {
+  return memory;
+}
+}
 
-#include <string>
-
-namespace remill {
-
-enum ArchName : uint32_t {
-  kArchInvalid,
-
-  kArchX86,
-  kArchX86_AVX,
-  kArchX86_AVX512,
-
-  kArchAMD64,
-  kArchAMD64_AVX,
-  kArchAMD64_AVX512,
-
-  kArchMips32,
-  kArchMips64,
-
-  kArchARM,
-  kArchARM64
-};
-
-// Convert the string name of an architecture into a canonical form.
-ArchName GetArchName(const std::string &arch_name);
-
-std::string GetArchName(ArchName);
-
-}  // namespace remill
-
-#endif  // REMILL_ARCH_NAME_H_
+DEF_ISEL(MOV) = MOV<M64W, R64>;

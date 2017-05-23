@@ -6,13 +6,6 @@
 namespace remill {
 
 class MipsDisassembler final : public CapstoneDisassembler {
-  struct PrivateData;
-  std::unique_ptr<PrivateData> d;
-
-  MipsDisassembler &operator=(const MipsDisassembler &other) = delete;
-  MipsDisassembler(const MipsDisassembler &other) = delete;
-  MipsDisassembler() = delete;
-
  public:
   MipsDisassembler(bool is_64_bits);
   virtual ~MipsDisassembler();
@@ -37,6 +30,14 @@ class MipsDisassembler final : public CapstoneDisassembler {
   virtual std::size_t AddressSize() const noexcept;
   virtual Instruction::Category InstrCategory(
       const CapInstrPtr &cap_instr) const noexcept;
+
+ private:
+  struct PrivateData;
+  std::unique_ptr<PrivateData> d;
+
+  MipsDisassembler &operator=(const MipsDisassembler &other) = delete;
+  MipsDisassembler(const MipsDisassembler &other) = delete;
+  MipsDisassembler() = delete;
 };
 
 }  // namespace remill

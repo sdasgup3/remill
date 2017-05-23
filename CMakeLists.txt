@@ -153,9 +153,11 @@ list(APPEND PROJECT_LIBRARIES capstone)
 
 list(APPEND PROJECT_DEFINITIONS "INSTALL_SEMANTICS_DIR=\"${CMAKE_INSTALL_PREFIX}share/remill/semantics/\"")
 list(APPEND PROJECT_DEFINITIONS "BUILD_SEMANTICS_DIR=\"${CMAKE_CURRENT_BINARY_DIR}/remill/Arch/X86/Runtime/\"")
+list(APPEND PROJECT_DEFINITIONS "BUILD_SEMANTICS_DIR_ARM=\"${CMAKE_CURRENT_BINARY_DIR}/remill/Arch/ARM/Runtime/\"")
 
 add_library(${PROJECT_NAME} STATIC
     remill/Arch/Mips/Arch.cpp
+    remill/Arch/ARM/Arch.cpp
 
     remill/Arch/Capstone/CapstoneDisassembler.cpp
     remill/Arch/Capstone/MipsDisassembler.cpp
@@ -199,6 +201,7 @@ add_custom_target(semantics)
 # runtimes
 add_subdirectory(remill/Arch/X86/Runtime)
 add_subdirectory(remill/Arch/Mips/Runtime)
+add_subdirectory(remill/Arch/ARM/Runtime)
 
 # test tools
 add_subdirectory(tools/testdec)

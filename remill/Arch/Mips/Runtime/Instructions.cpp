@@ -18,8 +18,8 @@
 #include "remill/Arch/Runtime/Operators.h"
 
 #include "remill/Arch/Mips/Runtime/State.h"
-#include "remill/Arch/Mips/Runtime/Operators.h"
 #include "remill/Arch/Mips/Runtime/Types.h"
+#include "remill/Arch/Mips/Runtime/Operators.h"
 
 #include <fenv.h>
 #include <algorithm>
@@ -895,16 +895,10 @@ DEF_SEM(HandleInvalidInstruction) {
   return memory;
 }
 
-DEF_SEM(HandleBreakpoint) {
-  return __remill_sync_hyper_call(memory, state,
-                                  SyncHyperCall::kDebugBreakpoint);
-}
-
 }  // namespace
 
 // Takes the place of an unsupported instruction.
 DEF_ISEL(UNSUPPORTED_INSTRUCTION) = HandleUnsupported;
 DEF_ISEL(INVALID_INSTRUCTION) = HandleInvalidInstruction;
-DEF_ISEL(BREAKPOINT_INSTRUCTION) = HandleBreakpoint;
 
 #include "remill/Arch/Mips/Semantics/ARITHMETIC.cpp"

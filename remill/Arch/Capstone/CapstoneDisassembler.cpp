@@ -123,6 +123,11 @@ std::string CapstoneDisassembler::SemFuncName(
   return func_name.str();
 }
 
+/// returns the capstone handle
+csh CapstoneDisassembler::GetCapstoneHandle() const noexcept {
+  return d->capstone;
+}
+
 bool CapstoneDisassembler::ConvertToRemInstr(
     const std::unique_ptr<remill::Instruction> &rem_instr,
     const CapInstrPtr &cap_instr) const noexcept {
