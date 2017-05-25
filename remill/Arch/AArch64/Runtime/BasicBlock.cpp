@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "remill/Arch/ARM/Runtime/State.h"
+#include "remill/Arch/AArch64/Runtime/State.h"
 
 extern "C" {
 

@@ -1,4 +1,26 @@
-#include "MipsDisassembler.h"
+/*
+ * Copyright (c) 2017 Trail of Bits, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <glog/logging.h>
+
+#include <algorithm>
+#include <string>
+#include <vector>
+
+#include "remill/Arch/Capstone/MipsDisassembler.h"
 
 namespace remill {
 
@@ -13,39 +35,57 @@ MipsDisassembler::MipsDisassembler(bool is_64_bits)
   d->address_size = (is_64_bits ? 64 : 32);
 }
 
-MipsDisassembler::~MipsDisassembler() {}
+MipsDisassembler::~MipsDisassembler(void) {}
 
-std::string MipsDisassembler::RegName(std::uintmax_t reg_id) const noexcept {
+std::string MipsDisassembler::SemFuncName(
+    const CapInstrPtr &cap_instr, const std::vector<Operand> &op_list) const {
+
+  std::string mnemonic(cap_instr->mnemonic);
+  std::transform(mnemonic.begin(), mnemonic.end(), mnemonic.begin(), ::toupper);
+
+  std::stringstream func_name;
+  func_name << mnemonic;
+
+  for (const Operand &operand : op_list) {
+    switch (operand.type) {
+      case Operand::kTypeInvalid: {
+        LOG(FATAL) << "Invalid operand type";
+        break;
+      }
+
+      case Operand::kTypeRegister: {
+        func_name << "_R" << (operand.reg.size * 8);
+        break;
+      }
+
+      case Operand::kTypeImmediate: {
+        func_name << "_" << (operand.imm.is_signed ? "S" : "U") << "I64";
+        break;
+      }
+
+      case Operand::kTypeAddress: {
+        func_name << "_M" << (operand.addr.address_size * 8);
+        break;
+      }
+    }
+  }
+
+  return func_name.str();
+}
+
+std::string MipsDisassembler::RegName(uint64_t reg_id) const {
   return "";
 }
 
-bool MipsDisassembler::PostDisasmHook(const CapInstrPtr &cap_instr) const
-    noexcept {
-  return true;
+uint64_t MipsDisassembler::RegSize(uint64_t reg_id) const {
+  return d->address_size;
 }
 
-bool MipsDisassembler::PostDecodeHook(
-    const std::unique_ptr<Instruction> &rem_instr,
-    const CapInstrPtr &cap_instr) const noexcept {
-  return true;
-}
+std::vector<Operand> MipsDisassembler::InstrOps(
+    const CapInstrPtr &cap_instr) const {
 
-bool MipsDisassembler::RegName(std::string &name, std::uintmax_t reg_id) const
-    noexcept {
-  name = RegName(reg_id);
-  if (name.empty()) return false;
+  std::vector<Operand> op_list;
 
-  return true;
-}
-
-bool MipsDisassembler::RegSize(std::size_t &size, const std::string &name) const
-    noexcept {
-  size = d->address_size;
-  return true;
-}
-
-bool MipsDisassembler::InstrOps(std::vector<Operand> &op_list,
-                                const CapInstrPtr &cap_instr) const noexcept {
   const cs_mips &instruction_details = cap_instr->detail->mips;
 
   for (std::uint8_t operand_index = 0;
@@ -80,10 +120,11 @@ bool MipsDisassembler::InstrOps(std::vector<Operand> &op_list,
       remill_operand.type = Operand::kTypeAddress;
       remill_operand.size = AddressSize() / 8;
 
-      if (operand_index == 0)
+      if (operand_index == 0) {
         remill_operand.action = Operand::kActionRead;
-      else
+      } else {
         remill_operand.action = Operand::kActionWrite;
+      }
 
       remill_operand.addr.address_size = AddressSize() / 8;
 
@@ -103,15 +144,15 @@ bool MipsDisassembler::InstrOps(std::vector<Operand> &op_list,
     op_list.push_back(remill_operand);
   }
 
-  return true;
+  return op_list;
 }
 
-std::size_t MipsDisassembler::AddressSize() const noexcept {
+std::size_t MipsDisassembler::AddressSize(void) const {
   return d->address_size;
 }
 
 Instruction::Category MipsDisassembler::InstrCategory(
-    const CapInstrPtr &cap_instr) const noexcept {
+    const CapInstrPtr &cap_instr) const {
   /*
     The following opcodes were found in the MIPS architecture manual but were
     not
@@ -210,8 +251,6 @@ Instruction::Category MipsDisassembler::InstrCategory(
     TRUNC.W.fmt
     WRPGPR
   */
-
-  Instruction::Category category = {};
 
   // use the same sorting as the manual!
   switch (cap_instr->id) {
@@ -366,29 +405,21 @@ Instruction::Category MipsDisassembler::InstrCategory(
     case MIPS_INS_ERET:
     case MIPS_INS_EXT:
     case MIPS_INS_INS:
-    case MIPS_INS_J: {
-      category = Instruction::kCategoryNormal;
-      break;
-    }
+    case MIPS_INS_J:
+      return Instruction::kCategoryNormal;
 
-    case MIPS_INS_JAL: {
-      category = Instruction::kCategoryDirectFunctionCall;
-      break;
-    }
+    case MIPS_INS_JAL:
+      return Instruction::kCategoryDirectFunctionCall;
 
     case MIPS_INS_JALR:
     case MIPS_INS_JALR_HB:
     case MIPS_INS_JALX:
     case MIPS_INS_JIALC:
-    case MIPS_INS_JIC: {
-      category = Instruction::kCategoryNormal;
-      break;
-    }
+    case MIPS_INS_JIC:
+      return Instruction::kCategoryNormal;
 
-    case MIPS_INS_JR: {
-      category = Instruction::kCategoryFunctionReturn;
-      break;
-    }
+    case MIPS_INS_JR:
+      return Instruction::kCategoryFunctionReturn;
 
     case MIPS_INS_JR_HB:
     case MIPS_INS_LB:
@@ -513,7 +544,7 @@ Instruction::Category MipsDisassembler::InstrCategory(
     case MIPS_INS_WSBH:
     case MIPS_INS_XOR:
     case MIPS_INS_XORI:
-      category = Instruction::kCategoryNormal;
+      return Instruction::kCategoryNormal;
 
     /*
       i couldn't find these opcodes in the manual; some of them can probably
@@ -832,10 +863,9 @@ Instruction::Category MipsDisassembler::InstrCategory(
     case MIPS_INS_VSHF:
     case MIPS_INS_WRDSP:
     case MIPS_INS_NEGU:
-      category = Instruction::kCategoryInvalid;
+      return Instruction::kCategoryInvalid;
   }
-
-  return category;
+  return Instruction::kCategoryInvalid;
 }
 
 }  //  namespace remill

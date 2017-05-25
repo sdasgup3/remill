@@ -145,15 +145,17 @@ std::string Instruction::Serialize(void) const {
     case kArchMips64:
       ss << "MIPS64_";
       break;
-    case kArchARM:
-      ss << "ARM_";
+    case kArchAArch64BigEndian:
+      ss << "AArch64BE_";
       break;
-    case kArchARM64:
-      ss << "ARM64_";
+    case kArchAArch64LittleEndian:
+      ss << "AArch64LE_";
       break;
   }
+
   ss << "INSTR 0x" << std::hex << pc << " "
      << std::dec << (next_pc - pc) << " ";
+
   if (is_atomic_read_modify_write) {
     ss << "ATOMIC ";
   }

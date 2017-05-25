@@ -5,8 +5,8 @@
  *      Author: akshayk
  */
 
-#ifndef REMILL_ARCH_ARM_RUNTIME_TYPES_H_
-#define REMILL_ARCH_ARM_RUNTIME_TYPES_H_
+#ifndef REMILL_ARCH_AARCH64_RUNTIME_TYPES_H_
+#define REMILL_ARCH_AARCH64_RUNTIME_TYPES_H_
 
 // define 32 bit and 64 registers types
 // TODO: Check how arm accesses the 8/16 bits of registers;
@@ -41,4 +41,4 @@ typedef In<uint64_t> I64;
 
 typedef In<addr_t> PC;
 
-#endif /* REMILL_ARCH_ARM_RUNTIME_TYPES_H_ */
+#endif /* REMILL_ARCH_AARCH64_RUNTIME_TYPES_H_ */

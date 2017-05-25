@@ -15,10 +15,13 @@
  */
 
 namespace {
-template <typename D, typename S>
-DEF_SEM(MOV, D dst, const S src) {
-  return memory;
-}
-}
 
-DEF_ISEL(MOV) = MOV<M64W, R64>;
+DEF_SEM(DoRET) { return memory; }
+
+DEF_SEM(DoSTP) { return memory; }
+
+}  // namespace
+
+// DEF_ISEL_32or64(RET_NEAR_IMMw, RET_IMM);
+DEF_ISEL(RET) = DoRET;
+DEF_ISEL(STP) = DoSTP;

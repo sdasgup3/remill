@@ -17,9 +17,10 @@
 namespace {
 
 template <typename D, typename S1, typename S2>
-DEF_SEM(SUB, D dst, S1 src1, S2 src2) {
+DEF_SEM(DoSUB, D dst, S1 src1, S2 src2) {
   return memory;
 }
-}
 
-DEF_ISEL(SUB) = SUB<M32W, M32, R32>;
+}  // namespace
+
+DEF_ISEL(SUB) = DoSUB<M32W, M32, R32>;

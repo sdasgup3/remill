@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef REMILL_ARCH_ARM_ARCH_H_
-#define REMILL_ARCH_ARM_ARCH_H_
+#ifndef REMILL_ARCH_AARCH64_ARCH_H_
+#define REMILL_ARCH_AARCH64_ARCH_H_
+
+#include <memory>
+#include <string>
 
 #include <capstone/capstone.h>
-#include <memory>
+
 #include "remill/Arch/Arch.h"
 
 namespace remill {
@@ -37,11 +40,11 @@ class ARMArch : public Arch {
   //
 
   void PrepareModule(llvm::Module *mod) const override;
-  uint64_t ProgramCounter(const ArchState *state) const override;
-  Instruction *DecodeInstruction(uint64_t address,
-                                 const std::string &instr_bytes) const override;
+
+  std::unique_ptr<Instruction> DecodeInstruction(
+      uint64_t address, const std::string &instr_bytes) const override;
 };
 
 }  // namespace remill
 
-#endif  // REMILL_ARCH_ARM_ARCH_H_
+#endif  // REMILL_ARCH_AARCH64_ARCH_H_

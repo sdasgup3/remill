@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef REMILL_ARCH_ARM_RUNTIME_STATE_H_
-#define REMILL_ARCH_ARM_RUNTIME_STATE_H_
+#ifndef REMILL_ARCH_AARCH64_RUNTIME_STATE_H_
+#define REMILL_ARCH_AARCH64_RUNTIME_STATE_H_
+
+#pragma clang diagnostic push
+#pragma clang diagnostic fatal "-Wpadded"
 
 #include "remill/Arch/Runtime/State.h"
 #include "remill/Arch/Runtime/Types.h"
@@ -110,7 +113,7 @@ struct alignas(8) GPR final {
 
 static_assert(520 == sizeof(GPR), "Invalid structure packing of `GPR`.");
 
-union alignas(8) ProcState final {
+union alignas(8) NativeProcState final {
   uint64_t flat;
   struct {
     //  bit 0
@@ -146,14 +149,66 @@ union alignas(8) ProcState final {
   } __attribute__((packed));
 } __attribute__((packed));
 
-static_assert(8 == sizeof(ProcState), "Invalid structure packing of `Flags`.");
+static_assert(8 == sizeof(NativeProcState),
+              "Invalid structure packing of `NativeProcState`.");
 
-struct alignas(16) State final : public ArchState {
-  ProcState sflag;  // 8 bytes.
-  GPR gpr;          // 520 bytes
-  uint8_t _0[16];
+struct alignas(8) ProcState final {
+  uint8_t _0;
+  uint8_t N;  //  Negative condition flag
+  uint8_t _1;
+  uint8_t Z;  //  Zero condition flag
+  uint8_t _2;
+  uint8_t C;  //  Carry condition flag
+  uint8_t _3;
+  uint8_t V;  //  Overflow condition flag
+  uint8_t _4;
+  uint8_t D;  //  Debug mask bit [AArch64 only]
+  uint8_t _5;
+  uint8_t A;  //  Asynchronous abort mask bit
+  uint8_t _6;
+  uint8_t I;  //  IRQ mask bit
+  uint8_t _7;
+  uint8_t F;  //  FIQ mask bit
+  uint8_t _8;
+  uint8_t SS;  //  Single-step bit
+  uint8_t _9;
+  uint8_t IL;  //  Illegal state bit
+  uint8_t _10;
+  uint8_t EL;  //  Exception Level (see above)
+  uint8_t _11;
+  uint8_t nRW;  //  not Register Width: 0=64, 1=32
+  uint8_t _12;
+  uint8_t SP;   //  Stack pointer select: 0=SP0, 1=SPx [AArch64 only]
+  uint8_t _13;
+  uint8_t Q;    //  Cumulative saturation flag [AArch32 only]
+  uint8_t _14;
+  uint8_t GE;   //  Greater than or Equal flags [AArch32 only]
+  uint8_t _15;
+  uint8_t IT;               // If-then state [AArch32 only]
+  uint8_t _16;
+  uint8_t J;                // Jazelle state [AArch32 only]
+  uint8_t _17;
+  uint8_t T;                // Thumb state [AArch32 only]
+  uint8_t _18;
+  uint8_t E;                // Endian state [AArch32 only]
+  uint8_t _19;
+  uint8_t M;                // Mode field (see above) [AArch32 only]
 } __attribute__((packed));
 
-static_assert((544 + 16) == sizeof(State), "Invalid packing of `struct State`");
 
-#endif /* REMILL_ARCH_ARM_RUNTIME_STATE_H_ */
+static_assert(40 == sizeof(ProcState),
+              "Invalid packing of `struct ProcState`");
+
+struct alignas(16) State final : public ArchState {
+  NativeProcState native_state;  // 8 bytes.
+  ProcState state;  // 40 bytes.
+  GPR gpr;  // 520 bytes.
+  uint8_t _0[8];  // 8 bytes.
+} __attribute__((packed));
+
+static_assert((576 + 16) == sizeof(State),
+              "Invalid packing of `struct State`");
+
+#pragma clang diagnostic pop
+
+#endif  // REMILL_ARCH_AARCH64_RUNTIME_STATE_H_

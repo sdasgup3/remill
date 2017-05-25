@@ -1,4 +1,20 @@
-#include "CapstoneDisassembler.h"
+/*
+ * Copyright (c) 2017 Trail of Bits, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include "remill/Arch/Capstone/CapstoneDisassembler.h"
 
 #include <algorithm>
 #include <sstream>
@@ -7,14 +23,18 @@
 #include <remill/Arch/Name.h>
 
 namespace remill {
+namespace {
 
-void CapstoneInstructionDeleter(cs_insn *instruction) noexcept {
-  if (instruction != nullptr) cs_free(instruction, 1);
+static void CapstoneInstructionDeleter(cs_insn *instruction) {
+  if (instruction != nullptr) {
+    cs_free(instruction, 1);
+  }
 }
+
+}  // namespace
 
 struct CapstoneDisassembler::PrivateData final {
   csh capstone;
-
   cs_arch arch;
   cs_mode cap_mode;
   std::size_t addr_size;
@@ -30,120 +50,87 @@ CapstoneDisassembler::CapstoneDisassembler(cs_arch arch, cs_mode mode)
       << "The MIPS module has failed to initialize the Capstone library";
 
   switch (arch) {
-    case CS_ARCH_ARM64: {
+    case CS_ARCH_ARM64:
       d->addr_size = 64;
       break;
-    }
 
-    case CS_ARCH_ARM: {
+    case CS_ARCH_ARM:
       d->addr_size = 32;
       break;
-    }
 
-    case CS_ARCH_MIPS: {
-      if ((mode & CS_MODE_MIPS64) != 0)
+    case CS_ARCH_MIPS:
+      if ((mode & CS_MODE_MIPS64) != 0) {
         d->addr_size = 64;
-      else
+      } else {
         d->addr_size = 32;
-
+      }
       break;
-    }
 
-    default: { CHECK(false) << "Invalid architecture selected"; }
+    default:
+      LOG(FATAL)
+          << "Invalid architecture selected";
+      break;
   }
 
   cs_option(d->capstone, CS_OPT_DETAIL, CS_OPT_ON);
 }
 
-CapstoneDisassembler::~CapstoneDisassembler() { cs_close(&d->capstone); }
+CapstoneDisassembler::~CapstoneDisassembler(void) {
+  cs_close(&d->capstone);
+}
 
-bool CapstoneDisassembler::Decode(const std::unique_ptr<Instruction> &rem_instr,
+void CapstoneDisassembler::Decode(const std::unique_ptr<Instruction> &rem_instr,
                                   uint64_t vaddr,
-                                  const std::string &instr_bytes) const
-    noexcept {
+                                  const std::string &instr_bytes) const {
   CapInstrPtr cap_instr = Disassemble(
       vaddr, reinterpret_cast<const std::uint8_t *>(instr_bytes.data()),
       instr_bytes.size());
 
-  if (!cap_instr) return false;
-  if (!ConvertToRemInstr(rem_instr, cap_instr)) return false;
-
-  return true;
+  if (cap_instr) {
+    ConvertToRemInstr(rem_instr, cap_instr);
+  } else {
+    LOG(ERROR)
+        << "Capstone failed to decode instruction at "
+        << std::hex << vaddr;
+  }
 }
 
 CapInstrPtr CapstoneDisassembler::Disassemble(std::uint64_t vaddr,
                                               const std::uint8_t *buf,
-                                              std::size_t size) const noexcept {
-  cs_insn *temp_instr;
-  if (cs_disasm(d->capstone, buf, size, vaddr, 1, &temp_instr) != 1)
+                                              std::size_t size) const {
+  cs_insn *temp_instr = nullptr;
+  if (cs_disasm(d->capstone, buf, size, vaddr, 1, &temp_instr) != 1) {
     return nullptr;
-
-  auto cap_instr = CapInstrPtr(temp_instr, CapstoneInstructionDeleter);
-  if (!PostDisasmHook(cap_instr)) return nullptr;
-
-  return cap_instr;
-}
-
-std::string CapstoneDisassembler::SemFuncName(
-    const CapInstrPtr &cap_instr, const std::vector<Operand> &op_list) const
-    noexcept {
-  // in the default implementation we don't need to access the capstone
-  // instruction
-  static_cast<void>(cap_instr);
-
-  std::string mnemonic = cap_instr->mnemonic;
-  std::transform(mnemonic.begin(), mnemonic.end(), mnemonic.begin(), ::toupper);
-
-  std::stringstream func_name;
-  func_name << mnemonic;
-
-  for (const Operand &operand : op_list) {
-    switch (operand.type) {
-      case Operand::kTypeInvalid: {
-        CHECK(false) << "Invalid operand type";
-      }
-
-      case Operand::kTypeRegister: {
-        func_name << "_R" << (operand.reg.size * 8);
-        break;
-      }
-
-      case Operand::kTypeImmediate: {
-        func_name << "_" << (operand.imm.is_signed ? "S" : "U") << "I64";
-        break;
-      }
-
-      case Operand::kTypeAddress: {
-        func_name << "_M" << (operand.addr.address_size * 8);
-        break;
-      }
-    }
   }
 
-  return func_name.str();
+  return CapInstrPtr(temp_instr, CapstoneInstructionDeleter);
 }
 
 /// returns the capstone handle
-csh CapstoneDisassembler::GetCapstoneHandle() const noexcept {
+csh CapstoneDisassembler::GetCapstoneHandle(void) const {
   return d->capstone;
 }
 
-bool CapstoneDisassembler::ConvertToRemInstr(
+void CapstoneDisassembler::ConvertToRemInstr(
     const std::unique_ptr<remill::Instruction> &rem_instr,
-    const CapInstrPtr &cap_instr) const noexcept {
+    const CapInstrPtr &cap_instr) const {
+
   std::stringstream disasm;
   disasm << cap_instr->mnemonic << " " << cap_instr->op_str;
   rem_instr->disassembly = disasm.str();
 
-  if (d->arch == CS_ARCH_ARM)
-    rem_instr->arch_name = kArchARM;
-  else if (d->arch == CS_ARCH_ARM64)
-    rem_instr->arch_name = kArchARM64;
-  else if (d->arch == CS_ARCH_MIPS) {
-    if ((d->cap_mode & CS_MODE_MIPS64) != 0)
+  if (d->arch == CS_ARCH_ARM64) {
+    if (d->little_endian) {
+      rem_instr->arch_name = kArchAArch64LittleEndian;
+    } else {
+      rem_instr->arch_name = kArchAArch64BigEndian;
+    }
+  } else if (d->arch == CS_ARCH_MIPS) {
+    if ((d->cap_mode & CS_MODE_MIPS64) != 0) {
       rem_instr->arch_name = kArchMips64;
-    else
+    } else {
       rem_instr->arch_name = kArchMips32;
+    }
   }
 
   rem_instr->pc = cap_instr->address;
@@ -153,40 +140,28 @@ bool CapstoneDisassembler::ConvertToRemInstr(
   rem_instr->branch_taken_pc = 0;
   rem_instr->branch_not_taken_pc = 0;
   rem_instr->is_atomic_read_modify_write = false;
-
-  //
-  // convert the operands
-  //
-
-  rem_instr->operands.clear();
-  CHECK(InstrOps(rem_instr->operands, cap_instr))
-      << "Unsupported instruction operand encountered";
-
-  if (!PostDecodeHook(rem_instr, cap_instr)) return false;
-
+  rem_instr->operands = InstrOps(cap_instr);
   rem_instr->function = SemFuncName(cap_instr, rem_instr->operands);
-  return true;
 }
 
 Operand::Action CapstoneDisassembler::RegAccessType(
-    unsigned int reg_id, const CapInstrPtr &cap_instr) const noexcept {
-  Operand::Action action_type = Operand::kActionInvalid;
+    unsigned int reg_id, const CapInstrPtr &cap_instr) const {
 
   for (uint8_t i = 0; i < cap_instr->detail->regs_read_count; i++) {
-    if (cap_instr->detail->regs_read[i] != reg_id) continue;
-
-    action_type = Operand::kActionRead;
-    break;
+    if (cap_instr->detail->regs_read[i] != reg_id) {
+      continue;
+    }
+    return Operand::kActionRead;
   }
 
   for (uint8_t i = 0; i < cap_instr->detail->regs_write_count; i++) {
-    if (cap_instr->detail->regs_write[i] != reg_id) continue;
-
-    action_type = Operand::kActionWrite;
-    break;
+    if (cap_instr->detail->regs_write[i] != reg_id) {
+      continue;
+    }
+    return Operand::kActionWrite;
   }
 
-  return action_type;
+  return Operand::kActionInvalid;
 }
 
-}  // remill namespace
+}  // namespace remill

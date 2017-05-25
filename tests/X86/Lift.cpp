@@ -93,26 +93,13 @@ static void AddFunctionToModule(llvm::Module *module,
     auto bytes = reinterpret_cast<const char *>(addr);
     instr_bytes.insert(instr_bytes.end(), bytes, bytes + 15);
 
-    std::unique_ptr<remill::Instruction> inst(
-        arch->DecodeInstruction(addr, instr_bytes));
+    auto inst = arch->DecodeInstruction(addr, instr_bytes);
 
     CHECK(inst->IsValid())
         << "Can't decode test instruction in " << test.test_name;
 
-    switch (auto status = lifter.LiftIntoBlock(inst.get(), block)) {
-      case remill::LiftStatus::kError:
-      case remill::LiftStatus::kInvalid:
-        LOG(ERROR)
-            << "Not lifting " << inst->Serialize();
-        remill::AddTerminatingTailCall(block, intrinsics.error);
-        return;
-      case remill::LiftStatus::kUnsupported:
-        LOG(ERROR)
-            << "Unsupported instruction: " << inst->Serialize();
-        break;
-      default:
-        break;
-    }
+    CHECK(lifter.LiftIntoBlock(inst.get(), block))
+        << "Can't lift test instruction in " << test.test_name;
 
     addr += inst->NumBytes();
   }

@@ -18,6 +18,7 @@
 #define REMILL_ARCH_MIPS_ARCH_H_
 
 #include <capstone/capstone.h>
+#include <string>
 #include <memory>
 #include "remill/Arch/Arch.h"
 
@@ -37,9 +38,9 @@ class MipsArch : public Arch {
   //
 
   void PrepareModule(llvm::Module *mod) const override;
-  uint64_t ProgramCounter(const ArchState *state) const override;
-  Instruction *DecodeInstruction(uint64_t address,
-                                 const std::string &instr_bytes) const override;
+
+  std::unique_ptr<Instruction> DecodeInstruction(
+      uint64_t address, const std::string &instr_bytes) const override;
 };
 
 }  // namespace remill

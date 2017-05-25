@@ -123,7 +123,9 @@ int main(int argc, char *argv[], char *envp[]) {
 
         std::unique_ptr<remill::Instruction> remill_instr(
             new remill::Instruction);
-        if (!disasm->Decode(remill_instr, virtual_address, buffer)) {
+        disasm->Decode(remill_instr, virtual_address, buffer);
+
+        if (remill_instr->function.empty()) {
           std::cout
               << "     ; Failed to disassemble the instruction at vaddr 0x"
               << std::hex << virtual_address << std::endl;

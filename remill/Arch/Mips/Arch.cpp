@@ -49,6 +49,7 @@ const Arch *Arch::GetMips(OSName os_name_, ArchName arch_name_) {
 
 MipsArch::MipsArch(OSName os_name_, ArchName arch_name_)
     : Arch(os_name_, arch_name_), d(new PrivateData) {
+
   CHECK(os_name_ == kOSLinux)
       << "The MIPS module does not support the specified operating system";
 
@@ -64,21 +65,16 @@ MipsArch::MipsArch(OSName os_name_, ArchName arch_name_)
 MipsArch::~MipsArch(void) {}
 
 void MipsArch::PrepareModule(llvm::Module *mod) const {
-  static_cast<void>(mod);
+  LOG(FATAL)
+      << "Cannot prepare module for non-x86 architecture "
+      << GetArchName(arch_name);
 }
 
-uint64_t MipsArch::ProgramCounter(const ArchState *state) const {
-  static_cast<void>(state);
-  return 0;
-}
-
-Instruction *MipsArch::DecodeInstruction(uint64_t address,
-                                         const std::string &instr_bytes) const {
+std::unique_ptr<Instruction> MipsArch::DecodeInstruction(
+    uint64_t address, const std::string &instr_bytes) const {
   std::unique_ptr<Instruction> remill_instr(new Instruction);
-  if (!d->disassembler->Decode(remill_instr, address, instr_bytes))
-    return nullptr;
-
-  return remill_instr.release();
+  d->disassembler->Decode(remill_instr, address, instr_bytes);
+  return remill_instr;
 }
 
 }  // namespace remill

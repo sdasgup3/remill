@@ -29,10 +29,8 @@ class X86Arch : public Arch {
 
   void PrepareModule(llvm::Module *mod) const override;
 
-  uint64_t ProgramCounter(const ArchState *state) const override;
-
   // Decode an instruction.
-  Instruction *DecodeInstruction(
+  std::unique_ptr<Instruction> DecodeInstruction(
       uint64_t address, const std::string &instr_bytes) const override;
 
  private:

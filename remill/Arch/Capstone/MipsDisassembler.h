@@ -1,35 +1,54 @@
+/*
+ * Copyright (c) 2017 Trail of Bits, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef REMILL_ARCH_CAPSTONE_MIPSDISASSEMBLER_H_
 #define REMILL_ARCH_CAPSTONE_MIPSDISASSEMBLER_H_
 
-#include "CapstoneDisassembler.h"
+#include <memory>
+#include <string>
+#include <vector>
+
+#include "remill/Arch/Capstone/CapstoneDisassembler.h"
 
 namespace remill {
 
 class MipsDisassembler final : public CapstoneDisassembler {
  public:
-  MipsDisassembler(bool is_64_bits);
+  explicit MipsDisassembler(bool is_64_bits);
   virtual ~MipsDisassembler();
 
  private:
-  std::string RegName(std::uintmax_t reg_id) const noexcept;
 
   //
   // CapstoneDisassembler hook interface and APIs
   //
  protected:
-  virtual bool PostDisasmHook(const CapInstrPtr &cap_instr) const noexcept;
-  virtual bool PostDecodeHook(const std::unique_ptr<Instruction> &rem_instr,
-                              const CapInstrPtr &cap_instr) const noexcept;
+  std::string SemFuncName(
+      const CapInstrPtr &cap_instr,
+      const std::vector<Operand> &op_list) const override;
 
  public:
-  virtual bool RegName(std::string &name, std::uintmax_t reg_id) const noexcept;
-  virtual bool RegSize(std::size_t &size, const std::string &name) const
-      noexcept;
-  virtual bool InstrOps(std::vector<Operand> &op_list,
-                        const CapInstrPtr &cap_instr) const noexcept;
-  virtual std::size_t AddressSize() const noexcept;
-  virtual Instruction::Category InstrCategory(
-      const CapInstrPtr &cap_instr) const noexcept;
+
+  std::string RegName(uint64_t reg_id) const override;
+  uint64_t RegSize(uint64_t reg_id) const override;
+
+  std::vector<Operand> InstrOps(const CapInstrPtr &cap_instr) const override;
+  std::size_t AddressSize(void) const override;
+  Instruction::Category InstrCategory(
+      const CapInstrPtr &cap_instr) const override;
 
  private:
   struct PrivateData;
@@ -37,7 +56,7 @@ class MipsDisassembler final : public CapstoneDisassembler {
 
   MipsDisassembler &operator=(const MipsDisassembler &other) = delete;
   MipsDisassembler(const MipsDisassembler &other) = delete;
-  MipsDisassembler() = delete;
+  MipsDisassembler(void) = delete;
 };
 
 }  // namespace remill

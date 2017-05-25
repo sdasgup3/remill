@@ -1,3 +1,19 @@
+/*
+ * Copyright (c) 2017 Trail of Bits, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #ifndef REMILL_ARCH_CAPSTONE_CAPSTONEDISASSEMBLER_H_
 #define REMILL_ARCH_CAPSTONE_CAPSTONEDISASSEMBLER_H_
 
@@ -7,6 +23,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <vector>
 
 namespace remill {
 
@@ -18,15 +35,16 @@ typedef std::unique_ptr<cs_insn, std::function<void(cs_insn *)>> CapInstrPtr;
 class CapstoneDisassembler {
  public:
   CapstoneDisassembler(cs_arch arch, cs_mode mode);
-  virtual ~CapstoneDisassembler();
 
-  /// decodes exactly one instruction from the specified buffer.
-  bool Decode(const std::unique_ptr<Instruction> &rem_instr, uint64_t vaddr,
-              const std::string &instr_bytes) const noexcept;
+  virtual ~CapstoneDisassembler(void);
+
+  /// Decodes exactly one instruction from the specified buffer.
+  void Decode(const std::unique_ptr<Instruction> &rem_instr, uint64_t vaddr,
+              const std::string &instr_bytes) const;
 
   /// Disassembles the specified buffer trying to return exactly one opcode.
   CapInstrPtr Disassemble(std::uint64_t vaddr, const std::uint8_t *buf,
-                          std::size_t size) const noexcept;
+                          std::size_t size) const;
 
   /**
     Converts a CapstoneInstruction to a remill::Instruction object.
@@ -34,12 +52,12 @@ class CapstoneDisassembler {
     reference because the constructor is protected.
   */
 
-  bool ConvertToRemInstr(const std::unique_ptr<Instruction> &rem_instr,
-                         const CapInstrPtr &cap_instr) const noexcept;
+  void ConvertToRemInstr(const std::unique_ptr<Instruction> &rem_instr,
+                         const CapInstrPtr &cap_instr) const;
 
   /// Returns the action type for the specified register.
   Operand::Action RegAccessType(unsigned int reg_id,
-                                const CapInstrPtr &cap_instr) const noexcept;
+                                const CapInstrPtr &cap_instr) const;
 
   //
   // Architecture-specific customizations
@@ -49,57 +67,32 @@ class CapstoneDisassembler {
   // Override if the default implementation does not suffice.
 
   /// Returns the semantic function name for the specified instruction.
-  virtual std::string SemFuncName(const CapInstrPtr &cap_instr,
-                                  const std::vector<Operand> &op_list) const
-      noexcept;
+  virtual std::string SemFuncName(
+      const CapInstrPtr &cap_instr,
+      const std::vector<Operand> &op_list) const = 0;
 
   // Hooks
   // Hooks are mandatory and must be implemented.
 
  protected:
   /// returns the capstone handle
-  csh GetCapstoneHandle() const noexcept;
-
-  /**
-    This hook is called just after the instruction has been disassembled by
-    capstone and before it is converted to remill::Instruction.
-    \return True to continue processing the current instruction, or false to
-    abort it.
-  */
-
-  virtual bool PostDisasmHook(const CapInstrPtr &cap_instr) const noexcept = 0;
-
-  /**
-    This hook is called after the capstone instruction has been converted to
-    remill::Instruction.
-    \return True to continue processing the current instruction, or false to
-    abort it.
-  */
-
-  virtual bool PostDecodeHook(const std::unique_ptr<Instruction> &rem_instr,
-                              const CapInstrPtr &cap_instr) const noexcept = 0;
+  csh GetCapstoneHandle(void) const;
 
   // APIs
   // APIs are mandatory and must be implemented.
  public:
   /**
     This method is called when a register id needs to be converted to string.
-    \return True to continue processing the current instruction, or false to
-    abort it.
   */
 
-  virtual bool RegName(std::string &name, std::uintmax_t reg_id) const
-      noexcept = 0;
+  virtual std::string RegName(uint64_t reg_id) const = 0;
 
   /**
     This method is called when the class needs to obtain the size of the
-    specified register
-    \return True to continue processing the current instruction, or false abort
-    it.
+    specified register.
   */
 
-  virtual bool RegSize(std::size_t &size, const std::string &name) const
-      noexcept = 0;
+  virtual uint64_t RegSize(uint64_t reg_id) const = 0;
 
   /**
     This method is called when the disassembler needs the opcode operands
@@ -107,15 +100,14 @@ class CapstoneDisassembler {
     abort it.
   */
 
-  virtual bool InstrOps(std::vector<Operand> &op_list,
-                        const CapInstrPtr &cap_instr) const noexcept = 0;
+  virtual std::vector<Operand> InstrOps(const CapInstrPtr &cap_instr) const = 0;
 
   /// Returns the address size, in bits
-  virtual std::size_t AddressSize() const noexcept = 0;
+  virtual std::size_t AddressSize(void) const = 0;
 
   /// Returns the instruction category
   virtual Instruction::Category InstrCategory(
-      const CapInstrPtr &cap_instr) const noexcept = 0;
+      const CapInstrPtr &cap_instr) const = 0;
 
  private:
   struct PrivateData;
@@ -123,7 +115,7 @@ class CapstoneDisassembler {
 
   CapstoneDisassembler(const CapstoneDisassembler &other) = delete;
   CapstoneDisassembler &operator=(const CapstoneDisassembler &other) = delete;
-  CapstoneDisassembler() = delete;
+  CapstoneDisassembler(void) = delete;
 };
 
 }  // namespace remill

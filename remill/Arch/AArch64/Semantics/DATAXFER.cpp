@@ -14,24 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef REMILL_ARCH_ARM_RUNTIME_OPERATORS_H_
-#define REMILL_ARCH_ARM_RUNTIME_OPERATORS_H_
-
 namespace {
 
-// Read a register directly. Sometimes this is needed for suppressed operands.
-ALWAYS_INLINE static IF_64BIT_ELSE(uint64_t, uint32_t)
-    _Read(Memory *, Reg reg) {
-  return reg.IF_64BIT_ELSE(qword, dword);
-}
-
-// Write directly to a register. This is sometimes needed for suppressed
-// register operands.
-ALWAYS_INLINE static void _Write(Memory *, Reg &reg,
-                                 IF_64BIT_ELSE(uint64_t, uint32_t) val) {
-  reg.IF_64BIT_ELSE(qword, dword) = val;
+template <typename D, typename S>
+DEF_SEM(DoMOV, D dst, const S src) {
+  Write(dst, Read(src));
+  return memory;
 }
 
 }  // namespace
 
-#endif /* REMILL_ARCH_ARM_RUNTIME_OPERATORS_H_ */
+DEF_ISEL(MOV_R64_R64) = DoMOV<R64W, R64>;

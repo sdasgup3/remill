@@ -27,7 +27,7 @@
 DEFINE_string(arch, "",
               "Architecture of the code being translated. "
               "Valid architectures: x86, amd64 (with or without "
-              "`_avx` or `_avx512` appended), arm, arm64, "
+              "`_avx` or `_avx512` appended), aarch64be, aarch64le"
               "mips32, mips64");
 
 DECLARE_string(os);
@@ -44,13 +44,13 @@ static unsigned AddressSize(ArchName arch_name) {
     case kArchX86_AVX:
     case kArchX86_AVX512:
     case kArchMips32:
-    case kArchARM:
       return 32;
     case kArchAMD64:
     case kArchAMD64_AVX:
     case kArchAMD64_AVX512:
     case kArchMips64:
-    case kArchARM64:
+    case kArchAArch64BigEndian:
+    case kArchAArch64LittleEndian:
       return 64;
   }
 }
@@ -76,16 +76,22 @@ const Arch *Arch::Get(OSName os_name_, ArchName arch_name_) {
       LOG(FATAL) << "Unrecognized architecture.";
       return nullptr;
 
-    case kArchARM:
-    case kArchARM64: {
-      static ArchCache gArchARM;
-      auto &arch = gArchARM[os_name_];
+    case kArchAArch64BigEndian: {
+      static ArchCache gArchAArch64BE;
+      auto &arch = gArchAArch64BE[os_name_];
       if (!arch) {
-        std::string message("Using architecture: ARM");
-        message += (arch_name_ == kArchARM ? "" : "64");
+        DLOG(INFO) << "Using architecture: AArch64, feature set: Big Endian";
+        arch = ArchPtr(GetAArch64(os_name_, arch_name_));
+      }
+      return arch.get();
+    }
 
-        DLOG(INFO) << message;
-        arch = ArchPtr(GetARM(os_name_, arch_name_));
+    case kArchAArch64LittleEndian: {
+      static ArchCache gArchAArch64LE;
+      auto &arch = gArchAArch64LE[os_name_];
+      if (!arch) {
+        DLOG(INFO) << "Using architecture: AArch64, feature set: Little Endian";
+        arch = ArchPtr(GetAArch64(os_name_, arch_name_));
       }
       return arch.get();
     }
@@ -100,15 +106,21 @@ const Arch *Arch::Get(OSName os_name_, ArchName arch_name_) {
       return arch.get();
     }
 
-    case kArchMips32:
-    case kArchMips64: {
+    case kArchMips32: {
       static ArchCache gArchMips;
       auto &arch = gArchMips[os_name_];
       if (!arch) {
-        std::string message("Using architecture: MIPS");
-        message += (arch_name_ == kArchMips32 ? "32" : "64");
+        DLOG(INFO) << "Using architecture: 32-bit MIPS";
+        arch = ArchPtr(GetMips(os_name_, arch_name_));
+      }
+      return arch.get();
+    }
 
-        DLOG(INFO) << message;
+    case kArchMips64: {
+      static ArchCache gArchMips64;
+      auto &arch = gArchMips64[os_name_];
+      if (!arch) {
+        DLOG(INFO) << "Using architecture: 64-bit MIPS";
         arch = ArchPtr(GetMips(os_name_, arch_name_));
       }
       return arch.get();

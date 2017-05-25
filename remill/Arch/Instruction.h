@@ -33,9 +33,18 @@ class Operand {
   Operand(void);
   ~Operand(void) = default;
 
-  enum Type { kTypeInvalid, kTypeRegister, kTypeImmediate, kTypeAddress } type;
+  enum Type {
+    kTypeInvalid,
+    kTypeRegister,
+    kTypeImmediate,
+    kTypeAddress
+  } type;
 
-  enum Action { kActionInvalid, kActionRead, kActionWrite } action;
+  enum Action {
+    kActionInvalid,
+    kActionRead,
+    kActionWrite
+  } action;
 
   // Size of this operand, in bits.
   size_t size;
@@ -47,7 +56,7 @@ class Operand {
     ~Register(void) = default;
 
     std::string name;
-    size_t size;
+    size_t size;  // In bits.
   } reg;
 
   // kTypeImmediate.
@@ -78,7 +87,7 @@ class Operand {
     Register index_reg;
     int64_t scale;
     int64_t displacement;
-    uint64_t address_size;
+    uint64_t address_size;  // In bits.
     Kind kind;
 
     inline bool IsMemoryAccess(void) const {
@@ -201,12 +210,18 @@ class Instruction {
     return kCategoryFunctionReturn == category;
   }
 
-  inline bool IsValid(void) const { return kCategoryInvalid != category; }
+  inline bool IsValid(void) const {
+    return kCategoryInvalid != category;
+  }
 
   // Length, in bytes, of the instruction.
-  inline uint64_t NumBytes(void) const { return next_pc - pc; }
+  inline uint64_t NumBytes(void) const {
+    return next_pc - pc;
+  }
 
-  inline bool IsNoOp(void) const { return kCategoryNoOp == category; }
+  inline bool IsNoOp(void) const {
+    return kCategoryNoOp == category;
+  }
 };
 
 }  // namespace remill

@@ -17,14 +17,14 @@
 #include "remill/Arch/Runtime/Intrinsics.h"
 #include "remill/Arch/Runtime/Operators.h"
 
-#include "remill/Arch/ARM/Runtime/State.h"
-#include "remill/Arch/ARM/Runtime/Types.h"
-#include "remill/Arch/ARM/Runtime/Operators.h"
-
 #include <fenv.h>
 #include <algorithm>
 #include <bitset>
 #include <cmath>
+
+#include "remill/Arch/AArch64/Runtime/Operators.h"
+#include "remill/Arch/AArch64/Runtime/State.h"
+#include "remill/Arch/AArch64/Runtime/Types.h"
 
 #define REG_RIP state.gpr.rip.qword
 #define REG_XZR state.gpr.R31.qword
@@ -68,6 +68,28 @@
 #define REG_X29 state.gpr.R29.qword
 #define REG_X30 state.gpr.R30.qword
 
-#include "remill/Arch/ARM/Semantics/BINARY.cpp"
-#include "remill/Arch/ARM/Semantics/CALL_RET.cpp"
-#include "remill/Arch/ARM/Semantics/DATAXFER.cpp"
+#define HYPER_CALL state.hyper_call
+#define INTERRUPT_VECTOR state.interrupt_vector
+
+namespace {
+// Takes the place of an unsupported instruction.
+DEF_SEM(HandleUnsupported) {
+  return __remill_sync_hyper_call(
+      memory, state, SyncHyperCall::kAArch64EmulateInstruction);
+}
+
+// Takes the place of an invalid instruction.
+DEF_SEM(HandleInvalidInstruction) {
+  HYPER_CALL = AsyncHyperCall::kInvalidInstruction;
+  return memory;
+}
+
+}  // namespace
+
+// Takes the place of an unsupported instruction.
+DEF_ISEL(UNSUPPORTED_INSTRUCTION) = HandleUnsupported;
+DEF_ISEL(INVALID_INSTRUCTION) = HandleInvalidInstruction;
+
+#include "remill/Arch/AArch64/Semantics/BINARY.cpp"
+#include "remill/Arch/AArch64/Semantics/CALL_RET.cpp"
+#include "remill/Arch/AArch64/Semantics/DATAXFER.cpp"

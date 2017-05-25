@@ -17,6 +17,7 @@
 #include <glog/logging.h>
 
 #include <map>
+#include <memory>
 #include <sstream>
 #include <string>
 
@@ -24,19 +25,10 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
 
-#undef HAS_FEATURE_AVX
-#undef HAS_FEATURE_AVX512
-#undef ADDRESS_SIZE_BITS
-
-#define HAS_FEATURE_AVX 1
-#define HAS_FEATURE_AVX512 1
-#define ADDRESS_SIZE_BITS 64
-
 #include "remill/Arch/Instruction.h"
 #include "remill/Arch/Name.h"
 #include "remill/Arch/X86/Arch.h"
 #include "remill/Arch/X86/XED.h"
-#include "remill/Arch/X86/Runtime/State.h"
 #include "remill/BC/Version.h"
 #include "remill/OS/OS.h"
 
@@ -715,22 +707,14 @@ void X86Arch::PrepareModule(llvm::Module *mod) const {
   std::string dl;
   std::string triple;
 
-  /// \todo the interface is spilling implementation-specific values (i.e.: mips)
+  // TODO(alessandro): This interface is spilling implementation-specific
+  //                   values (i.e.: mips).
   switch (os_name) {
     case kOSInvalid:
       LOG(FATAL) << "Cannot convert module for an unrecognized OS.";
       break;
     case kOSLinux:
       switch (arch_name) {
-        case kArchInvalid:
-        case kArchMips32:
-        case kArchMips64:
-        case kArchARM:
-        case kArchARM64:
-          LOG(FATAL)
-              << "Cannot convert module for an unrecognized architecture.";
-            break;
-
         case kArchAMD64:
         case kArchAMD64_AVX:
         case kArchAMD64_AVX512:
@@ -743,20 +727,16 @@ void X86Arch::PrepareModule(llvm::Module *mod) const {
           dl = "e-m:e-p:32:32-f64:32:64-f80:32-n8:16:32-S128";
           triple = "i386-pc-linux-gnu";
           break;
+        default:
+          LOG(FATAL)
+              << "Cannot prepare module for non-x86 architecture "
+              << GetArchName(arch_name);
+          break;
       }
       break;
 
     case kOSmacOS:
       switch (arch_name) {
-        case kArchInvalid:
-        case kArchMips32:
-        case kArchMips64:
-        case kArchARM:
-        case kArchARM64:
-          LOG(FATAL)
-              << "Cannot convert module for an unrecognized architecture.";
-          break;
-
         case kArchAMD64:
         case kArchAMD64_AVX:
         case kArchAMD64_AVX512:
@@ -769,6 +749,10 @@ void X86Arch::PrepareModule(llvm::Module *mod) const {
           dl = "e-m:o-p:32:32-f64:32:64-f80:128-n8:16:32-S128";
           triple = "i386-apple-macosx10.10.0";
           break;
+        default:
+          LOG(FATAL)
+              << "Cannot prepare module for non-x86 architecture "
+              << GetArchName(arch_name);
       }
       break;
   }
@@ -800,13 +784,13 @@ void X86Arch::PrepareModule(llvm::Module *mod) const {
 }
 
 // Decode an instruction.
-Instruction *X86Arch::DecodeInstruction(
+std::unique_ptr<Instruction> X86Arch::DecodeInstruction(
     uint64_t address,
     const std::string &instr_bytes) const {
   xed_decoded_inst_t xedd_;
   xed_decoded_inst_t *xedd = &xedd_;
   auto mode = 32 == address_size ? &kXEDState32 : &kXEDState64;
-  auto instr = new Instruction;
+  std::unique_ptr<Instruction> instr(new Instruction);
 
   if (!DecodeXED(xedd, mode, instr_bytes, address)) {
     return instr;
@@ -827,7 +811,7 @@ Instruction *X86Arch::DecodeInstruction(
   }
 
   if (Instruction::kCategoryConditionalAsyncHyperCall == instr->category) {
-    DecodeConditionalInterrupt(instr);
+    DecodeConditionalInterrupt(instr.get());
   }
 
   // Lift the operands. This creates the arguments for us to call the
@@ -837,12 +821,12 @@ Instruction *X86Arch::DecodeInstruction(
   for (auto i = 0U; i < num_operands; ++i) {
     auto xedo = xed_inst_operand(xedi, i);
     if (XED_OPVIS_SUPPRESSED != xed_operand_operand_visibility(xedo)) {
-      DecodeOperand(instr, xedd, xedo);
+      DecodeOperand(instr.get(), xedd, xedo);
     }
   }
 
   if (instr->IsFunctionCall()) {
-    DecodeFallThroughPC(instr, xedd);
+    DecodeFallThroughPC(instr.get(), xedd);
   }
 
   char buffer[256] = {'\0'};
@@ -860,15 +844,6 @@ Instruction *X86Arch::DecodeInstruction(
   }
 
   return instr;
-}
-
-uint64_t X86Arch::ProgramCounter(const ArchState *state_) const {
-  auto state = reinterpret_cast<const State *>(state_);
-  if (32 == address_size) {
-    return state->gpr.rip.dword;
-  } else {
-    return state->gpr.rip.qword;
-  }
 }
 
 }  // namespace remill

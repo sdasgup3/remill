@@ -153,17 +153,17 @@ list(APPEND PROJECT_LIBRARIES capstone)
 
 list(APPEND PROJECT_DEFINITIONS "INSTALL_SEMANTICS_DIR=\"${CMAKE_INSTALL_PREFIX}share/remill/semantics/\"")
 list(APPEND PROJECT_DEFINITIONS "BUILD_SEMANTICS_DIR=\"${CMAKE_CURRENT_BINARY_DIR}/remill/Arch/X86/Runtime/\"")
-list(APPEND PROJECT_DEFINITIONS "BUILD_SEMANTICS_DIR_ARM=\"${CMAKE_CURRENT_BINARY_DIR}/remill/Arch/ARM/Runtime/\"")
+list(APPEND PROJECT_DEFINITIONS "BUILD_SEMANTICS_DIR_ARM=\"${CMAKE_CURRENT_BINARY_DIR}/remill/Arch/AArch64/Runtime/\"")
 
 add_library(${PROJECT_NAME} STATIC
-    remill/Arch/Mips/Arch.cpp
-    remill/Arch/ARM/Arch.cpp
 
     remill/Arch/Capstone/CapstoneDisassembler.cpp
     remill/Arch/Capstone/MipsDisassembler.cpp
-    remill/Arch/Capstone/ARMDisassembler.cpp
 
+    remill/Arch/AArch64/Arch.cpp
     remill/Arch/X86/Arch.cpp
+    remill/Arch/Mips/Arch.cpp
+    
     remill/Arch/Arch.cpp
     remill/Arch/Instruction.cpp
     remill/Arch/Name.cpp
@@ -201,15 +201,10 @@ add_custom_target(semantics)
 # runtimes
 add_subdirectory(remill/Arch/X86/Runtime)
 add_subdirectory(remill/Arch/Mips/Runtime)
-add_subdirectory(remill/Arch/ARM/Runtime)
+add_subdirectory(remill/Arch/AArch64/Runtime)
 
-# test tools
-add_subdirectory(tools/testdec)
-
-# mcsema needs to be manually cloned into this repo.
-if (EXISTS ${CMAKE_SOURCE_DIR}/tools/mcsema)
-    add_subdirectory(tools/mcsema)
-endif ()
+# tools
+add_subdirectory(tools)
 
 # only enable tests when compiling under x64
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)

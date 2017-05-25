@@ -42,10 +42,8 @@ endif ()
 
 # remill
 set(TESTDEC_SOURCEFILES
-
     ${CMAKE_SOURCE_DIR}/remill/Arch/Capstone/CapstoneDisassembler.cpp
     ${CMAKE_SOURCE_DIR}/remill/Arch/Capstone/MipsDisassembler.cpp
-    ${CMAKE_SOURCE_DIR}/remill/Arch/Capstone/ARMDisassembler.cpp
     ${CMAKE_SOURCE_DIR}/remill/Arch/Instruction.cpp
 )
 
