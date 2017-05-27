@@ -37,16 +37,25 @@ class MipsDisassembler final : public CapstoneDisassembler {
   //
  protected:
   std::string SemFuncName(
-      const CapInstrPtr &cap_instr,
-      const std::vector<Operand> &op_list) const override;
+      const RemInstrPtr &rem_instr,
+      const CapInstrPtr &cap_instr) const override;
 
  public:
+
+  bool CanReadRegister(const CapInstrPtr &cap_instr, uint64_t reg_id,
+                       unsigned op_num) const override;
+
+  bool CanWriteRegister(const CapInstrPtr &cap_instr, uint64_t reg_id,
+                        unsigned op_num) const override;
 
   std::string RegName(uint64_t reg_id) const override;
   uint64_t RegSize(uint64_t reg_id) const override;
 
-  std::vector<Operand> InstrOps(const CapInstrPtr &cap_instr) const override;
+  void FillInstrOps(const RemInstrPtr &rem_instr,
+                    const CapInstrPtr &cap_instr) const override;
+
   std::size_t AddressSize(void) const override;
+
   Instruction::Category InstrCategory(
       const CapInstrPtr &cap_instr) const override;
 

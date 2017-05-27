@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <gflags/gflags.h>
 #include <glog/logging.h>
 
 #include <algorithm>
@@ -46,26 +47,50 @@ class ARMDisassembler final : public CapstoneDisassembler {
   void EnableThumbMode(bool enabled);
 
  private:
-  std::string InstructionPredicate(const CapInstrPtr &caps_instr) const;
+//  std::string InstructionPredicate(const CapInstrPtr &caps_instr) const;
 
  public:
+  bool CanReadRegister(const CapInstrPtr &cap_instr, uint64_t reg_id,
+                         unsigned op_num) const override;
+  bool CanWriteRegister(const CapInstrPtr &cap_instr, uint64_t reg_id,
+                        unsigned op_num) const override;
+
   std::string RegName(uint64_t reg_id) const override;
 
   uint64_t RegSize(uint64_t reg_id) const override;
 
-  std::vector<Operand> InstrOps(const CapInstrPtr &cap_instr) const override;
+  void FillInstrOps(const RemInstrPtr &rem_instr,
+                    const CapInstrPtr &cap_instr) const override;
 
   std::size_t AddressSize(void) const override;
+
   Instruction::Category InstrCategory(const CapInstrPtr &cap_instr) const
       override;
 
   std::string SemFuncName(
-      const CapInstrPtr &cap_instr,
-      const std::vector<Operand> &op_list) const override;
+      const RemInstrPtr &rem_instr,
+      const CapInstrPtr &cap_instr) const override;
 
  private:
   struct PrivateData;
   std::unique_ptr<PrivateData> d;
+
+  std::string SanitizeName(const char *mnemonic) const;
+
+  void DecodeRegister(const CapInstrPtr &cap_instr,
+                      std::vector<Operand> &op_list,
+                      uint64_t op_num) const;
+
+  void DecodeImmediate(const CapInstrPtr &cap_instr,
+                       const RemInstrPtr &rem_instr,
+                       uint64_t op_num) const;
+
+  void DecodeMemory(const CapInstrPtr &cap_instr,
+                    std::vector<Operand> &op_list,
+                    uint64_t op_num) const;
+
+  void DecodeBranchTaken(std::vector<Operand> &op_list) const;
+
 
   ARMDisassembler &operator=(const ARMDisassembler &other) = delete;
   ARMDisassembler(const ARMDisassembler &other) = delete;
@@ -86,71 +111,7 @@ ARMDisassembler::ARMDisassembler(bool is_64_bits)
 
 ARMDisassembler::~ARMDisassembler(void) {}
 
-std::string ARMDisassembler::RegName(uint64_t reg_id) const {
-  if (!reg_id) {
-    return std::string();
-  }
-
-  return cs_reg_name(GetCapstoneHandle(), reg_id);
-}
-
-uint64_t ARMDisassembler::RegSize(uint64_t reg_id) const {
-  return d->address_size;
-}
-
-std::string ARMDisassembler::InstructionPredicate(
-    const CapInstrPtr &caps_instr) const {
-  uint32_t cond_code = 0;
-
-  if (AddressSize() == 32) {
-    auto arm = &(caps_instr->detail->arm);
-    cond_code = static_cast<uint32_t>(arm->cc);
-  } else {
-    auto arm64 = &(caps_instr->detail->arm64);
-    cond_code = static_cast<uint32_t>(arm64->cc);
-  }
-
-  switch (cond_code) {
-    case ARM64_CC_INVALID:
-      return "";
-    case ARM64_CC_EQ:
-      return "EQ";
-    case ARM64_CC_NE:
-      return "NE";
-    case ARM64_CC_HS:
-      return "HS";
-    case ARM64_CC_LO:
-      return "LO";
-    case ARM64_CC_MI:
-      return "MI";
-    case ARM64_CC_PL:
-      return "PL";
-    case ARM64_CC_VS:
-      return "VS";
-    case ARM64_CC_VC:
-      return "VC";
-    case ARM64_CC_HI:
-      return "HI";
-    case ARM64_CC_LS:
-      return "LS";
-    case ARM64_CC_GE:
-      return "GE";
-    case ARM64_CC_LT:
-      return "LT";
-    case ARM64_CC_GT:
-      return "GT";
-    case ARM64_CC_LE:
-      return "LE";
-    case ARM64_CC_AL:
-      return "AL";
-    case ARM64_CC_NV:
-      return "";
-    default:
-      return "";
-  }
-}
-
-static std::string CleanMnemonic(const char *mnemonic) {
+std::string ARMDisassembler::SanitizeName(const char *mnemonic) const {
   std::stringstream ss;
 
   for (auto i = 0; mnemonic[i]; ++i) {
@@ -163,57 +124,262 @@ static std::string CleanMnemonic(const char *mnemonic) {
   return ss.str();
 }
 
-std::vector<Operand> ARMDisassembler::InstrOps(
+std::string ARMDisassembler::RegName(uint64_t reg_id) const {
+  if (!reg_id) {
+    return std::string();
+  }
+  return SanitizeName(cs_reg_name(GetCapstoneHandle(), reg_id));
+}
+
+uint64_t ARMDisassembler::RegSize(uint64_t reg_id) const {
+  return d->address_size;
+}
+
+//std::string ARMDisassembler::InstructionPredicate(
+//    const CapInstrPtr &caps_instr) const {
+//
+//  auto arm64 = &(caps_instr->detail->arm64);
+//  switch (arm64->cc) {
+//    case ARM64_CC_INVALID:
+//      return "";
+//    case ARM64_CC_EQ:
+//      return "EQ";
+//    case ARM64_CC_NE:
+//      return "NE";
+//    case ARM64_CC_HS:
+//      return "HS";
+//    case ARM64_CC_LO:
+//      return "LO";
+//    case ARM64_CC_MI:
+//      return "MI";
+//    case ARM64_CC_PL:
+//      return "PL";
+//    case ARM64_CC_VS:
+//      return "VS";
+//    case ARM64_CC_VC:
+//      return "VC";
+//    case ARM64_CC_HI:
+//      return "HI";
+//    case ARM64_CC_LS:
+//      return "LS";
+//    case ARM64_CC_GE:
+//      return "GE";
+//    case ARM64_CC_LT:
+//      return "LT";
+//    case ARM64_CC_GT:
+//      return "GT";
+//    case ARM64_CC_LE:
+//      return "LE";
+//    case ARM64_CC_AL:
+//      return "AL";
+//    case ARM64_CC_NV:
+//      return "NV";
+//    default:
+//      return "";
+//  }
+//}
+
+bool ARMDisassembler::CanReadRegister(
+    const CapInstrPtr &cap_instr, uint64_t reg_id,
+    unsigned op_num) const {
+  return true;
+}
+
+bool ARMDisassembler::CanWriteRegister(
+    const CapInstrPtr &cap_instr, uint64_t reg_id,
+    unsigned op_num) const {
+
+  if (!op_num) {
+    return true;
+  }
+
+  if (op_num < cap_instr->detail->arm64.op_count) {
+    return false;
+  }
+
+  const auto regs_write = cap_instr->detail->regs_write;
+  auto num_write_regs = cap_instr->detail->regs_write_count;
+
+  for (uint8_t i = 0; i < num_write_regs; i++) {
+    if (static_cast<uint64_t>(regs_write[i]) == reg_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void ARMDisassembler::DecodeRegister(const CapInstrPtr &cap_instr,
+                                     std::vector<Operand> &op_list,
+                                     uint64_t op_num) const {
+  auto arm64_ = &(cap_instr->detail->arm64);
+  const auto &arm64_operand = arm64_->operands[op_num];
+
+  Operand op = {};
+  op.type = Operand::kTypeRegister;
+  op.size = RegSize(arm64_operand.reg);
+  op.reg.size = RegSize(arm64_operand.reg);
+  op.reg.name = RegName(arm64_operand.reg);
+  op.action = Operand::kActionInvalid;
+
+  switch (arm64_operand.shift.type) {
+    case ARM64_SFT_LSL:
+    case ARM64_SFT_MSL:
+    case ARM64_SFT_LSR:
+    case ARM64_SFT_ASR:
+    case ARM64_SFT_ROR:
+      LOG(FATAL)
+          << "Unsupported register shift type.";
+      break;
+    case ARM64_SFT_INVALID:
+      break;
+  }
+
+  if (CanWriteRegister(cap_instr, arm64_operand.reg, op_num)) {
+    op.action = Operand::kActionWrite;
+    op_list.push_back(op);
+  }
+
+  if (CanReadRegister(cap_instr, arm64_operand.reg, op_num)) {
+    op.action = Operand::kActionRead;
+    op_list.push_back(op);
+  }
+
+  CHECK(op.action != Operand::kActionInvalid)
+      << "Register " << op.reg.name << " is neither read nor written "
+      << "in instruction " << std::hex << cap_instr->address;
+}
+
+void ARMDisassembler::DecodeImmediate(const CapInstrPtr &cap_instr,
+                                      const RemInstrPtr &rem_instr,
+                                      uint64_t op_num) const {
+  auto arm64_ = &(cap_instr->detail->arm64);
+  const auto &arm64_operand = arm64_->operands[op_num];
+
+  Operand op = {};
+  op.type = Operand::kTypeImmediate;
+  op.action = Operand::kActionRead;
+  op.size = 64;
+  op.imm.is_signed = false;  // Capstone doesn't even know :-(
+  op.imm.val = static_cast<uint64_t>(arm64_operand.imm);
+
+  auto shift = static_cast<uint64_t>(arm64_operand.shift.value);
+
+  switch (arm64_operand.shift.type) {
+    case ARM64_SFT_LSL:
+      op.imm.val <<= shift;
+      break;
+
+    // TODO(pag): How do these work?
+    case ARM64_SFT_MSL:
+    case ARM64_SFT_LSR:
+    case ARM64_SFT_ASR:
+    case ARM64_SFT_ROR:
+      LOG(FATAL)
+          << "Unsupported immediate shift type.";
+      break;
+    case ARM64_SFT_INVALID:
+      break;
+  }
+
+  rem_instr->operands.push_back(op);
+
+  // If this is a conditional branch, then add in another immediate operand
+  // representing the not-taken address.
+  switch (rem_instr->category) {
+    case Instruction::kCategoryConditionalBranch:
+      rem_instr->branch_taken_pc = op.imm.val;
+      rem_instr->branch_not_taken_pc = rem_instr->next_pc;
+      op.imm.val = rem_instr->branch_not_taken_pc;
+      rem_instr->operands.push_back(op);
+      break;
+
+    case Instruction::kCategoryDirectJump:
+      rem_instr->branch_taken_pc = op.imm.val;
+      break;
+
+    case Instruction::kCategoryDirectFunctionCall:
+      rem_instr->branch_taken_pc = op.imm.val;
+
+      // Pass in the return address as another immediate operand.
+      op.imm.val = rem_instr->next_pc;
+      rem_instr->operands.push_back(op);
+      break;
+
+    default:
+      break;
+  }
+}
+
+void ARMDisassembler::DecodeMemory(const CapInstrPtr &cap_instr,
+                                   std::vector<Operand> &op_list,
+                                   uint64_t op_num) const {
+  auto arm64_ = &(cap_instr->detail->arm64);
+  const auto &arm64_operand = arm64_->operands[op_num];
+
+  Operand op = {};
+  op.type = Operand::kTypeAddress;
+
+  // TODO(pag): Capstone doesn't seem to give us this info, so we
+  //            will assume that all memory operands are possibly
+  //            writes to memory.
+  op.action = Operand::kActionWrite;
+
+  // TODO(pag): This should be the size of memory being read or written.
+  op.size = 64;
+  op.addr.base_reg.size = RegSize(arm64_operand.mem.base);
+  op.addr.base_reg.name = RegName(arm64_operand.mem.base);
+  op.addr.index_reg.size = RegSize(arm64_operand.mem.index);
+  op.addr.index_reg.name = RegName(arm64_operand.mem.index);
+  op.addr.displacement = arm64_operand.mem.disp;
+  op.addr.address_size = AddressSize();
+  op_list.push_back(op);
+}
+
+void ARMDisassembler::DecodeBranchTaken(std::vector<Operand> &op_list) const {
+  Operand cond_op = {};
+  cond_op.action = Operand::kActionWrite;
+  cond_op.type = Operand::kTypeRegister;
+  cond_op.reg.name = "BRANCH_TAKEN";
+  cond_op.reg.size = 8;
+  cond_op.size = 8;
+  op_list.push_back(cond_op);
+}
+
+void ARMDisassembler::FillInstrOps(
+    const RemInstrPtr &rem_instr,
     const CapInstrPtr &cap_instr) const {
 
   CHECK(AddressSize() == 64)
       << "Only AArch64 is supported.";
 
-  std::vector<Operand> op_list;
+  auto &op_list = rem_instr->operands;
+
+  if (Instruction::kCategoryConditionalBranch == rem_instr->category) {
+    DecodeBranchTaken(op_list);
+  }
 
   auto arm64_ = &(cap_instr->detail->arm64);
   auto num_operands = arm64_->op_count;
 
-  for (auto i = 0U; i < num_operands; ++i) {
-    auto arm64_operand = arm64_->operands[i];
+  for (uint64_t i = 0; i < num_operands; ++i) {
+    const auto &arm64_operand = arm64_->operands[i];
 
     switch (arm64_operand.type) {
       case ARM64_OP_INVALID:  // = CS_OP_INVALID (Uninitialized).
         break;
-      case ARM64_OP_REG: {
-        Operand op;
-        op.type = Operand::kTypeRegister;
-        op.size = RegSize(arm64_operand.reg);
-        op.reg.size = RegSize(arm64_operand.reg);
-        op.reg.name = RegName(arm64_operand.reg);
-        std::transform(op.reg.name.begin(), op.reg.name.end(),
-                       op.reg.name.begin(), ::toupper);
-        op_list.push_back(op);
+
+      case ARM64_OP_REG:
+        DecodeRegister(cap_instr, op_list, i);
         break;
-      }
-      case ARM64_OP_IMM: {  // = CS_OP_IMM (Immediate operand).
-        Operand op;
-        op.type = Operand::kTypeImmediate;
-        op.action = Operand::kActionRead;
-        op.size = 64;
-        op.imm.is_signed = true;
-        op.imm.val = arm64_operand.imm;
-        op_list.push_back(op);
+
+      case ARM64_OP_IMM:  // = CS_OP_IMM (Immediate operand).
+        DecodeImmediate(cap_instr, rem_instr, i);
         break;
-      }
-      case ARM64_OP_MEM: {  // = CS_OP_MEM (Memory operand).
-        Operand op;
-        op.type = Operand::kTypeAddress;
-        op.size = 64;
-        op.addr.base_reg.size = RegSize(arm64_operand.mem.base);
-        op.addr.base_reg.name = RegName(arm64_operand.mem.base);
-        op.addr.index_reg.size = RegSize(arm64_operand.mem.index);
-        op.addr.index_reg.name = RegName(arm64_operand.mem.index);
-        op.addr.displacement = arm64_operand.mem.disp;
-        op.addr.address_size = 64;
-        op_list.push_back(op);
+
+      case ARM64_OP_MEM:  // = CS_OP_MEM (Memory operand).
+        DecodeMemory(cap_instr, op_list, i);
         break;
-      }
+
       case ARM64_OP_FP:  // = CS_OP_FP (Floating-Point operand).
         LOG(ERROR)
             << "ARM64_OP_FP not yet supported.";
@@ -249,8 +415,6 @@ std::vector<Operand> ARMDisassembler::InstrOps(
         break;
     }
   }
-
-  return op_list;
 }
 
 std::size_t ARMDisassembler::AddressSize(void) const {
@@ -259,81 +423,113 @@ std::size_t ARMDisassembler::AddressSize(void) const {
 
 Instruction::Category ARMDisassembler::InstrCategory(
     const CapInstrPtr &cap_instr) const {
-  // AArch32.
-  if (AddressSize() == 32) {
-    auto instr_details = cap_instr->detail->arm;
 
-    if (cap_instr->id == ARM_INS_BL || cap_instr->id == ARM_INS_BLX) {
+  CHECK(AddressSize() == 64)
+      << "AArch32 is not yet supported";
+
+
+  switch (cap_instr->id) {
+    // TODO(pag): B.cond.
+    case ARM64_INS_B:
+      if (cap_instr->detail->arm64.cc == ARM64_CC_INVALID) {
+        return Instruction::kCategoryDirectJump;
+      } else {
+        return Instruction::kCategoryConditionalBranch;
+      }
+
+    case ARM64_INS_BR:
+      return Instruction::kCategoryIndirectJump;
+
+    case ARM64_INS_CBZ:
+    case ARM64_INS_CBNZ:
+    case ARM64_INS_TBZ:
+    case ARM64_INS_TBNZ:
+      return Instruction::kCategoryConditionalBranch;
+
+    case ARM64_INS_BL:
       return Instruction::kCategoryDirectFunctionCall;
 
-    } else if (cap_instr->id == ARM_INS_BX &&
-               instr_details.operands[0].type == ARM_OP_REG &&
-               instr_details.operands[0].reg == ARM_REG_LR) {
+    case ARM64_INS_BLR:
+      return Instruction::kCategoryIndirectFunctionCall;
+
+    case ARM64_INS_RET:
       return Instruction::kCategoryFunctionReturn;
 
-    } else if (cap_instr->id == ARM_INS_INVALID) {
+    case ARM64_INS_HLT:
+      return Instruction::kCategoryError;
+
+    case ARM64_INS_HVC:
+    case ARM64_INS_SMC:
+    case ARM64_INS_SVC:
+      return Instruction::kCategoryAsyncHyperCall;
+
+    case ARM64_INS_NOP:
+      return Instruction::kCategoryNoOp;
+
+    case ARM64_INS_INVALID:
       return Instruction::kCategoryInvalid;
-    }
 
-  // AArch64.
-  } else {
-    if (cap_instr->id == ARM64_INS_BL) {
-      return Instruction::kCategoryDirectFunctionCall;
+    // Note: These are implemented with synchronous hyper calls.
+    case ARM64_INS_BRK:
+    case ARM64_INS_SYS:
+    case ARM64_INS_SYSL:
+    case ARM64_INS_IC:
+    case ARM64_INS_DC:
+    case ARM64_INS_AT:
+    case ARM64_INS_TLBI:
+      return Instruction::kCategoryNormal;
 
-    } else if (cap_instr->id == ARM64_INS_RET) {
-      return Instruction::kCategoryFunctionReturn;
-
-    } else if (cap_instr->id == ARM64_INS_INVALID) {
-      return Instruction::kCategoryInvalid;
-    }
+    default:
+      return Instruction::kCategoryNormal;
   }
-
-  return Instruction::kCategoryNormal;
 }
 
 std::string ARMDisassembler::SemFuncName(
-    const CapInstrPtr &cap_instr, const std::vector<Operand> &op_list) const {
-  bool sbit = false;
+    const RemInstrPtr &rem_instr,
+    const CapInstrPtr &cap_instr) const {
+  CHECK(AddressSize() == 64)
+      << "AArch32 is not supported.";
 
   std::stringstream function_name;
-  function_name << CleanMnemonic(cap_instr->mnemonic);
-  function_name << InstructionPredicate(cap_instr);
+  function_name << SanitizeName(cap_instr->mnemonic);
+//  function_name << InstructionPredicate(cap_instr);
 
-  if (AddressSize() == 32) {
-    auto arm = &(cap_instr->detail->arm);
-    sbit = arm->update_flags;
-  } else {
-    auto arm64 = &(cap_instr->detail->arm64);
-    sbit = arm64->update_flags;
-  }
+  auto arm64 = &(cap_instr->detail->arm64);
 
   // Add S bit state with the function name.
-  if (sbit) {
+  if (arm64->update_flags) {
     function_name << "_S1";
   }
 
-  for (const Operand &operand : op_list) {
+  for (const Operand &operand : rem_instr->operands) {
     switch (operand.type) {
       case Operand::kTypeInvalid:
         LOG(FATAL)
             << "Invalid operand type";
         break;
 
-      case Operand::kTypeRegister: {
-        function_name << "_REG" << operand.reg.size;
+      case Operand::kTypeRegister:
+        if (Operand::kActionRead == operand.action) {
+          function_name << "_R" << operand.reg.size;
+        } else if (Operand::kActionWrite == operand.action) {
+          function_name << "_R" << operand.reg.size << "W";
+        } else {
+          LOG(FATAL)
+              << "Invalid action for register operand.";
+        }
         break;
-      }
 
-      case Operand::kTypeImmediate: {
+      case Operand::kTypeImmediate:
+        CHECK(Operand::kActionRead == operand.action)
+            << "Invalid action for immediate operand.";
+
         function_name
-            << "_" << (operand.imm.is_signed ? "SIMM" : "UIMM") << "64";
+            << "_" << (operand.imm.is_signed ? "S" : "U") << "64";
         break;
-      }
 
-      case Operand::kTypeAddress: {
-        function_name << "_MEM" << operand.addr.address_size * 8;
+      case Operand::kTypeAddress:
+        function_name << "_M" << operand.addr.address_size * 8;
         break;
-      }
     }
   }
 
@@ -368,7 +564,6 @@ ARMArch::ARMArch(OSName os_name_, ArchName arch_name_)
       << "The ARM module does not support the specified operating system";
 
   switch (arch_name) {
-    case kArchAArch64BigEndian:
     case kArchAArch64LittleEndian:
       d->operating_system = os_name_;
       d->architecture = arch_name_;
@@ -387,18 +582,17 @@ ARMArch::~ARMArch(void) {}
 
 void ARMArch::PrepareModule(llvm::Module *mod) const {
   std::string dl;
-  std::string triple;
+  llvm::Triple triple("aarch64-unknown-unknown-");
 
   switch (os_name) {
     case kOSLinux:
+      triple.setOS(llvm::Triple::Linux);
+
       switch (arch_name) {
-        case kArchAArch64BigEndian:
-        case kArchAArch64LittleEndian: {
-          // TODO(pag): Are these right for both LE and BE?
+        case kArchAArch64LittleEndian:
+          triple.setArch(llvm::Triple::aarch64);
           dl = "e-m:e-i64:64-i128:128-n32:64-S128";
-          triple = "arm64-unknown";
           break;
-        }
 
         default:
           LOG(FATAL)
@@ -416,7 +610,7 @@ void ARMArch::PrepareModule(llvm::Module *mod) const {
   }
 
   mod->setDataLayout(dl);
-  mod->setTargetTriple(triple);
+  mod->setTargetTriple(triple.normalize());
 
   // Go and remove compile-time attributes added into the semantics. These
   // can screw up later compilation. We purposefully compile semantics with

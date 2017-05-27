@@ -145,11 +145,8 @@ std::string Instruction::Serialize(void) const {
     case kArchMips64:
       ss << "MIPS64_";
       break;
-    case kArchAArch64BigEndian:
-      ss << "AArch64BE_";
-      break;
     case kArchAArch64LittleEndian:
-      ss << "AArch64LE_";
+      ss << "AArch64_";
       break;
   }
 

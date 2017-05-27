@@ -50,6 +50,10 @@
 #define DEF_ISEL(name) \
   extern "C" constexpr auto ISEL_ ## name [[gnu::used]]
 
+// Define a conditional execution function.
+#define DEF_COND(name) \
+  extern "C" constexpr auto COND_ ## name [[gnu::used]]
+
 // Define a semantics implementing function.
 #define DEF_SEM(name, ...) \
     ALWAYS_INLINE __attribute__((flatten)) static Memory *name ( \

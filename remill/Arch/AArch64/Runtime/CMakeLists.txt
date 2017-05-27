@@ -39,6 +39,6 @@ function (add_runtime_helper target_name address_bit_size little_endian)
 endfunction ()
 
 if (CMAKE_SIZEOF_VOID_P EQUAL 8)
-    add_runtime_helper(aarch64be 64 0)
-    add_runtime_helper(aarch64le 64 1)
+    # add_runtime_helper(aarch64be 64 0)
+    add_runtime_helper(aarch64 64 1)
 endif ()

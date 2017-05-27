@@ -27,7 +27,7 @@
 DEFINE_string(arch, "",
               "Architecture of the code being translated. "
               "Valid architectures: x86, amd64 (with or without "
-              "`_avx` or `_avx512` appended), aarch64be, aarch64le"
+              "`_avx` or `_avx512` appended), aarch64, "
               "mips32, mips64");
 
 DECLARE_string(os);
@@ -49,7 +49,6 @@ static unsigned AddressSize(ArchName arch_name) {
     case kArchAMD64_AVX:
     case kArchAMD64_AVX512:
     case kArchMips64:
-    case kArchAArch64BigEndian:
     case kArchAArch64LittleEndian:
       return 64;
   }
@@ -75,16 +74,6 @@ const Arch *Arch::Get(OSName os_name_, ArchName arch_name_) {
     case kArchInvalid:
       LOG(FATAL) << "Unrecognized architecture.";
       return nullptr;
-
-    case kArchAArch64BigEndian: {
-      static ArchCache gArchAArch64BE;
-      auto &arch = gArchAArch64BE[os_name_];
-      if (!arch) {
-        DLOG(INFO) << "Using architecture: AArch64, feature set: Big Endian";
-        arch = ArchPtr(GetAArch64(os_name_, arch_name_));
-      }
-      return arch.get();
-    }
 
     case kArchAArch64LittleEndian: {
       static ArchCache gArchAArch64LE;

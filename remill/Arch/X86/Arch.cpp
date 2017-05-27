@@ -21,6 +21,7 @@
 #include <sstream>
 #include <string>
 
+#include <llvm/ADT/Triple.h>
 #include <llvm/IR/Attributes.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/Module.h>
@@ -404,7 +405,7 @@ static void DecodeMemory(Instruction *instr,
     disp += static_cast<int64_t>(size / 8);
   }
 
-  Operand op;
+  Operand op = {};
   op.size = size;
 
   op.type = Operand::kTypeAddress;
@@ -473,7 +474,7 @@ static void DecodeImmediate(Instruction *instr,
         << xed_operand_enum_t2str(op_name) << ".";
   }
 
-  Operand op;
+  Operand op = {};
   op.type = Operand::kTypeImmediate;
   op.action = Operand::kActionRead;
   op.size = imm_size;
@@ -491,7 +492,7 @@ static void DecodeRegister(Instruction *instr,
   CHECK(XED_REG_INVALID != reg)
       << "Cannot get name of invalid register.";
 
-  Operand op;
+  Operand op = {};
   op.type = Operand::kTypeRegister;
   op.reg = RegOp(reg);
   op.size = op.reg.size;
@@ -535,7 +536,7 @@ static void DecodeRegister(Instruction *instr,
 
 static void DecodeConditionalInterrupt(Instruction *instr) {
   // Condition variable.
-  Operand cond_op;
+  Operand cond_op = {};
   cond_op.action = Operand::kActionWrite;
   cond_op.type = Operand::kTypeRegister;
   cond_op.reg.name = "BRANCH_TAKEN";
@@ -551,7 +552,7 @@ static void DecodeFallThroughPC(Instruction *instr,
   auto pc_reg = Is64Bit(instr->arch_name) ? XED_REG_RIP : XED_REG_EIP;
   auto pc_width = xed_get_register_width_bits64(pc_reg);
 
-  Operand not_taken_op;
+  Operand not_taken_op = {};
   not_taken_op.action = Operand::kActionRead;
   not_taken_op.type = Operand::kTypeAddress;
   not_taken_op.size = pc_width;
@@ -574,7 +575,7 @@ static void DecodeConditionalBranch(Instruction *instr,
       xed_decoded_inst_get_branch_displacement(xedd));
 
   // Condition variable.
-  Operand cond_op;
+  Operand cond_op = {};
   cond_op.action = Operand::kActionWrite;
   cond_op.type = Operand::kTypeRegister;
   cond_op.reg.name = "BRANCH_TAKEN";
@@ -583,7 +584,7 @@ static void DecodeConditionalBranch(Instruction *instr,
   instr->operands.push_back(cond_op);
 
   // Taken branch.
-  Operand taken_op;
+  Operand taken_op = {};
   taken_op.action = Operand::kActionRead;
   taken_op.type = Operand::kTypeAddress;
   taken_op.size = pc_width;
@@ -609,7 +610,7 @@ static void DecodeRelativeBranch(Instruction *instr,
       xed_decoded_inst_get_branch_displacement(xedd));
 
   // Taken branch.
-  Operand taken_op;
+  Operand taken_op = {};
   taken_op.action = Operand::kActionRead;
   taken_op.action = Operand::kActionRead;
   taken_op.type = Operand::kTypeAddress;
@@ -705,7 +706,7 @@ X86Arch::~X86Arch(void) {}
 // information for the target architecture.
 void X86Arch::PrepareModule(llvm::Module *mod) const {
   std::string dl;
-  std::string triple;
+  llvm::Triple triple;
 
   // TODO(alessandro): This interface is spilling implementation-specific
   //                   values (i.e.: mips).
@@ -713,19 +714,26 @@ void X86Arch::PrepareModule(llvm::Module *mod) const {
     case kOSInvalid:
       LOG(FATAL) << "Cannot convert module for an unrecognized OS.";
       break;
+
     case kOSLinux:
+      triple.setOS(llvm::Triple::Linux);
+      triple.setEnvironment(llvm::Triple::GNU);
+      triple.setVendor(llvm::Triple::PC);
+      triple.setObjectFormat(llvm::Triple::ELF);
+
       switch (arch_name) {
         case kArchAMD64:
         case kArchAMD64_AVX:
         case kArchAMD64_AVX512:
           dl = "e-m:e-i64:64-f80:128-n8:16:32:64-S128";
-          triple = "x86_64-unknown-linux-gnu";
+          triple.setArch(llvm::Triple::x86_64);
+
           break;
         case kArchX86:
         case kArchX86_AVX:
         case kArchX86_AVX512:
           dl = "e-m:e-p:32:32-f64:32:64-f80:32-n8:16:32-S128";
-          triple = "i386-pc-linux-gnu";
+          triple.setArch(llvm::Triple::x86);
           break;
         default:
           LOG(FATAL)
@@ -736,18 +744,22 @@ void X86Arch::PrepareModule(llvm::Module *mod) const {
       break;
 
     case kOSmacOS:
+      triple.setOS(llvm::Triple::MacOSX);
+      triple.setEnvironment(llvm::Triple::UnknownEnvironment);
+      triple.setVendor(llvm::Triple::Apple);
+      triple.setObjectFormat(llvm::Triple::MachO);
       switch (arch_name) {
         case kArchAMD64:
         case kArchAMD64_AVX:
         case kArchAMD64_AVX512:
           dl = "e-m:o-i64:64-f80:128-n8:16:32:64-S128";
-          triple = "x86_64-apple-macosx10.10.0";
+          triple.setArch(llvm::Triple::x86_64);
           break;
         case kArchX86:
         case kArchX86_AVX:
         case kArchX86_AVX512:
           dl = "e-m:o-p:32:32-f64:32:64-f80:128-n8:16:32-S128";
-          triple = "i386-apple-macosx10.10.0";
+          triple.setArch(llvm::Triple::x86);
           break;
         default:
           LOG(FATAL)
@@ -758,7 +770,7 @@ void X86Arch::PrepareModule(llvm::Module *mod) const {
   }
 
   mod->setDataLayout(dl);
-  mod->setTargetTriple(triple);
+  mod->setTargetTriple(triple.normalize());
 
   // Go and remove compile-time attributes added into the semantics. These
   // can screw up later compilation. We purposefully compile semantics with

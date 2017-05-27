@@ -37,10 +37,7 @@ ArchName GetArchName(const std::string &arch_name) {
   } else if (arch_name == "amd64_avx512") {
     return kArchAMD64_AVX512;
 
-  } else if (arch_name == "aarch64be") {
-    return kArchAArch64BigEndian;
-
-  } else if (arch_name == "aarch64le") {
+  } else if (arch_name == "aarch64") {
     return kArchAArch64LittleEndian;
 
   } else if (arch_name == "mips32") {
@@ -74,10 +71,8 @@ std::string GetArchName(ArchName arch_name) {
       return "mips32";
     case kArchMips64:
       return "mips64";
-    case kArchAArch64BigEndian:
-      return "aarch64be";
     case kArchAArch64LittleEndian:
-      return "aarch64le";
+      return "aarch64";
   }
 }
 

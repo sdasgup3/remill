@@ -20,6 +20,8 @@
 #pragma clang diagnostic push
 #pragma clang diagnostic fatal "-Wpadded"
 
+#define aword IF_64BIT_ELSE(qword, dword)
+
 #include "remill/Arch/Runtime/State.h"
 #include "remill/Arch/Runtime/Types.h"
 
@@ -35,83 +37,99 @@ struct Reg final {
 static_assert(sizeof(uint64_t) == sizeof(Reg), "Invalid packing of `Reg`.");
 static_assert(0 == __builtin_offsetof(Reg, dword),
               "Invalid packing of `Reg::dword`.");
+
 IF_64BIT(static_assert(0 == __builtin_offsetof(Reg, qword),
                        "Invalid packing of `Reg::qword`.");)
 
-struct alignas(8) GPR final {
+struct alignas(16) GPR final {
   // Prevents LLVM from casting a `GPR` into an `i64` to access `rax`.
   volatile uint64_t _0;
-  Reg R0;
+  Reg X0;
   volatile uint64_t _1;
-  Reg R1;
+  Reg X1;
   volatile uint64_t _2;
-  Reg R2;
+  Reg X2;
   volatile uint64_t _3;
-  Reg R3;
+  Reg X3;
   volatile uint64_t _4;
-  Reg R4;
+  Reg X4;
   volatile uint64_t _5;
-  Reg R5;
+  Reg X5;
   volatile uint64_t _6;
-  Reg R6;
+  Reg X6;
   volatile uint64_t _7;
-  Reg R7;
+  Reg X7;
   volatile uint64_t _8;
-  Reg R8;
+  Reg X8;
   volatile uint64_t _9;
-  Reg R9;
+  Reg X9;
   volatile uint64_t _10;
-  Reg R10;
+  Reg X10;
   volatile uint64_t _11;
-  Reg R11;
+  Reg X11;
   volatile uint64_t _12;
-  Reg R12;
+  Reg X12;
   volatile uint64_t _13;
-  Reg R13;
+  Reg X13;
   volatile uint64_t _14;
-  Reg R14;
+  Reg X14;
   volatile uint64_t _15;
-  Reg R15;
+  Reg X15;
   volatile uint64_t _16;
-  Reg R16;
+  Reg X16;
   volatile uint64_t _17;
-  Reg R17;
+  Reg X17;
   volatile uint64_t _18;
-  Reg R18;
+  Reg X18;
   volatile uint64_t _19;
-  Reg R19;
+  Reg X19;
   volatile uint64_t _20;
-  Reg R20;
+  Reg X20;
   volatile uint64_t _21;
-  Reg R21;
+  Reg X21;
   volatile uint64_t _22;
-  Reg R22;
+  Reg X22;
   volatile uint64_t _23;
-  Reg R23;
+  Reg X23;
   volatile uint64_t _24;
-  Reg R24;
+  Reg X24;
   volatile uint64_t _25;
-  Reg R25;
+  Reg X25;
   volatile uint64_t _26;
-  Reg R26;
+  Reg X26;
   volatile uint64_t _27;
-  Reg R27;
+  Reg X27;
   volatile uint64_t _28;
-  Reg R28;
+  Reg X28;
   volatile uint64_t _29;
-  Reg R29;
+  Reg X29;
   volatile uint64_t _30;
-  Reg R30;
+  Reg X30;
 
   // Reg 31 is called zero registers;
   volatile uint64_t _31;
-  Reg R31;
+  Reg X31;
 
   // Program counter of the CURRENT instruction!
-  Reg rip;
+  volatile uint64_t _32;
+  Reg PC;  // Program counter.
+
+  volatile uint64_t _33;
+  Reg SP;  // Stack pointer.
+
+  // TODO(pag): Add vector registers.
+  volatile uint64_t _34;
+  Reg _todo0;
+
+  volatile uint64_t _35;
+  Reg _todo1;
+
+  volatile uint64_t _36;
+  Reg _todo2;
+
 } __attribute__((packed));
 
-static_assert(520 == sizeof(GPR), "Invalid structure packing of `GPR`.");
+static_assert(592 == sizeof(GPR), "Invalid structure packing of `GPR`.");
 
 union alignas(8) NativeProcState final {
   uint64_t flat;
@@ -202,11 +220,10 @@ static_assert(40 == sizeof(ProcState),
 struct alignas(16) State final : public ArchState {
   NativeProcState native_state;  // 8 bytes.
   ProcState state;  // 40 bytes.
-  GPR gpr;  // 520 bytes.
-  uint8_t _0[8];  // 8 bytes.
+  GPR gpr;  // 592 bytes.
 } __attribute__((packed));
 
-static_assert((576 + 16) == sizeof(State),
+static_assert((640 + 16) == sizeof(State),
               "Invalid packing of `struct State`");
 
 #pragma clang diagnostic pop

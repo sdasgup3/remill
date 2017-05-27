@@ -37,8 +37,21 @@ MipsDisassembler::MipsDisassembler(bool is_64_bits)
 
 MipsDisassembler::~MipsDisassembler(void) {}
 
+bool MipsDisassembler::CanReadRegister(
+    const CapInstrPtr &cap_instr, uint64_t reg_id,
+    unsigned op_num) const {
+  return true;
+}
+
+bool MipsDisassembler::CanWriteRegister(
+    const CapInstrPtr &cap_instr, uint64_t reg_id,
+    unsigned op_num) const {
+  return true;
+}
+
 std::string MipsDisassembler::SemFuncName(
-    const CapInstrPtr &cap_instr, const std::vector<Operand> &op_list) const {
+    const RemInstrPtr &rem_instr,
+    const CapInstrPtr &cap_instr) const {
 
   std::string mnemonic(cap_instr->mnemonic);
   std::transform(mnemonic.begin(), mnemonic.end(), mnemonic.begin(), ::toupper);
@@ -46,7 +59,7 @@ std::string MipsDisassembler::SemFuncName(
   std::stringstream func_name;
   func_name << mnemonic;
 
-  for (const Operand &operand : op_list) {
+  for (const Operand &operand : rem_instr->operands) {
     switch (operand.type) {
       case Operand::kTypeInvalid: {
         LOG(FATAL) << "Invalid operand type";
@@ -81,57 +94,67 @@ uint64_t MipsDisassembler::RegSize(uint64_t reg_id) const {
   return d->address_size;
 }
 
-std::vector<Operand> MipsDisassembler::InstrOps(
+void MipsDisassembler::FillInstrOps(
+    const RemInstrPtr &rem_instr,
     const CapInstrPtr &cap_instr) const {
 
-  std::vector<Operand> op_list;
+  auto &op_list = rem_instr->operands;
 
   const cs_mips &instruction_details = cap_instr->detail->mips;
 
-  for (std::uint8_t operand_index = 0;
-       operand_index < instruction_details.op_count; operand_index++) {
+  for (uint64_t i = 0; i < instruction_details.op_count; i++) {
     const auto &instruction_operand =
-        instruction_details.operands[operand_index];
+        instruction_details.operands[i];
 
     if (instruction_operand.type == MIPS_OP_INVALID) break;
 
     Operand remill_operand = {};
 
-    // registers
+    // Register operand.
     if (instruction_operand.type == MIPS_OP_REG) {
       remill_operand.type = Operand::kTypeRegister;
-      remill_operand.size = AddressSize() / 8;
-      remill_operand.action = RegAccessType(instruction_operand.reg, cap_instr);
-
+      remill_operand.size = AddressSize();
       remill_operand.reg.name = RegName(instruction_operand.reg);
       remill_operand.reg.size = remill_operand.size;
 
-      // immediate values
+      if (CanWriteRegister(cap_instr, instruction_operand.reg, i)) {
+        remill_operand.action = Operand::kActionWrite;
+        op_list.push_back(remill_operand);
+      }
+
+      if (CanReadRegister(cap_instr, instruction_operand.reg, i)) {
+        remill_operand.action = Operand::kActionRead;
+        op_list.push_back(remill_operand);
+      }
+
+    // Immediate values.
     } else if (instruction_operand.type == MIPS_OP_IMM) {
       remill_operand.type = Operand::kTypeImmediate;
-      remill_operand.size = AddressSize() / 8;
+      remill_operand.size = AddressSize();
       remill_operand.action = Operand::kActionRead;
 
       remill_operand.imm.is_signed = true;
       remill_operand.imm.val = instruction_operand.imm;
 
-      // memory addresses
+      op_list.push_back(remill_operand);
+
+    // Memory addresses.
     } else {
       remill_operand.type = Operand::kTypeAddress;
-      remill_operand.size = AddressSize() / 8;
+      remill_operand.size = AddressSize();
 
-      if (operand_index == 0) {
+      if (!i) {
         remill_operand.action = Operand::kActionRead;
       } else {
         remill_operand.action = Operand::kActionWrite;
       }
 
-      remill_operand.addr.address_size = AddressSize() / 8;
+      remill_operand.addr.address_size = AddressSize();
 
       if (instruction_operand.mem.base != MIPS_REG_INVALID) {
         remill_operand.addr.base_reg.name =
             RegName(instruction_operand.mem.base);
-        remill_operand.addr.base_reg.size = AddressSize() / 8;
+        remill_operand.addr.base_reg.size = AddressSize();
       }
 
       remill_operand.addr.displacement = instruction_operand.mem.disp;
@@ -139,12 +162,10 @@ std::vector<Operand> MipsDisassembler::InstrOps(
       remill_operand.addr.kind = (remill_operand.action == Operand::kActionRead
                                       ? Operand::Address::kMemoryRead
                                       : Operand::Address::kMemoryWrite);
+
+      op_list.push_back(remill_operand);
     }
-
-    op_list.push_back(remill_operand);
   }
-
-  return op_list;
 }
 
 std::size_t MipsDisassembler::AddressSize(void) const {

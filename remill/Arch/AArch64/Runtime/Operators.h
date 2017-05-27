@@ -19,19 +19,19 @@
 
 namespace {
 
-//// Read a register directly. Sometimes this is needed for suppressed operands.
-//ALWAYS_INLINE static IF_64BIT_ELSE(uint64_t, uint32_t)
-//    _Read(Memory *, Reg reg) {
-//  return reg.IF_64BIT_ELSE(qword, dword);
-//}
-//
-//// Write directly to a register. This is sometimes needed for suppressed
-//// register operands.
-//ALWAYS_INLINE static void _Write(Memory *, Reg &reg,
-//                                 IF_64BIT_ELSE(uint64_t, uint32_t) val) {
-//  reg.IF_64BIT_ELSE(qword, dword) = val;
-//}
+// Read a register directly. Sometimes this is needed for suppressed operands.
+ALWAYS_INLINE static IF_64BIT_ELSE(uint64_t, uint32_t)
+    _Read(Memory *, Reg reg) {
+  return reg.IF_64BIT_ELSE(qword, dword);
+}
+
+// Write directly to a register. This is sometimes needed for suppressed
+// register operands.
+ALWAYS_INLINE static void _Write(Memory *, Reg &reg,
+                                 IF_64BIT_ELSE(uint64_t, uint32_t) val) {
+  reg.aword = val;
+}
 
 }  // namespace
 
-#endif /* REMILL_ARCH_AARCH64_RUNTIME_OPERATORS_H_ */
+#endif  // REMILL_ARCH_AARCH64_RUNTIME_OPERATORS_H_

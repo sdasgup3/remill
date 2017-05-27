@@ -73,6 +73,7 @@ CapstoneDisassembler::CapstoneDisassembler(cs_arch arch, cs_mode mode)
   }
 
   cs_option(d->capstone, CS_OPT_DETAIL, CS_OPT_ON);
+  cs_option(d->capstone, CS_OPT_SKIPDATA, CS_OPT_OFF);
 }
 
 CapstoneDisassembler::~CapstoneDisassembler(void) {
@@ -112,7 +113,7 @@ csh CapstoneDisassembler::GetCapstoneHandle(void) const {
 }
 
 void CapstoneDisassembler::ConvertToRemInstr(
-    const std::unique_ptr<remill::Instruction> &rem_instr,
+    const RemInstrPtr &rem_instr,
     const CapInstrPtr &cap_instr) const {
 
   std::stringstream disasm;
@@ -123,7 +124,8 @@ void CapstoneDisassembler::ConvertToRemInstr(
     if (d->little_endian) {
       rem_instr->arch_name = kArchAArch64LittleEndian;
     } else {
-      rem_instr->arch_name = kArchAArch64BigEndian;
+      LOG(FATAL)
+          << "Big-endian AArch64 is not supported.";
     }
   } else if (d->arch == CS_ARCH_MIPS) {
     if ((d->cap_mode & CS_MODE_MIPS64) != 0) {
@@ -135,33 +137,13 @@ void CapstoneDisassembler::ConvertToRemInstr(
 
   rem_instr->pc = cap_instr->address;
   rem_instr->next_pc = rem_instr->pc + cap_instr->size;
-  rem_instr->operand_size = AddressSize() / 8;
+  rem_instr->operand_size = AddressSize();
   rem_instr->category = InstrCategory(cap_instr);
   rem_instr->branch_taken_pc = 0;
   rem_instr->branch_not_taken_pc = 0;
   rem_instr->is_atomic_read_modify_write = false;
-  rem_instr->operands = InstrOps(cap_instr);
-  rem_instr->function = SemFuncName(cap_instr, rem_instr->operands);
-}
-
-Operand::Action CapstoneDisassembler::RegAccessType(
-    unsigned int reg_id, const CapInstrPtr &cap_instr) const {
-
-  for (uint8_t i = 0; i < cap_instr->detail->regs_read_count; i++) {
-    if (cap_instr->detail->regs_read[i] != reg_id) {
-      continue;
-    }
-    return Operand::kActionRead;
-  }
-
-  for (uint8_t i = 0; i < cap_instr->detail->regs_write_count; i++) {
-    if (cap_instr->detail->regs_write[i] != reg_id) {
-      continue;
-    }
-    return Operand::kActionWrite;
-  }
-
-  return Operand::kActionInvalid;
+  FillInstrOps(rem_instr, cap_instr);
+  rem_instr->function = SemFuncName(rem_instr, cap_instr);
 }
 
 }  // namespace remill

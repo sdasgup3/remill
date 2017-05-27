@@ -35,7 +35,6 @@ enum ArchName : uint32_t {
   kArchMips32,
   kArchMips64,
 
-  kArchAArch64BigEndian,
   kArchAArch64LittleEndian
 };
 

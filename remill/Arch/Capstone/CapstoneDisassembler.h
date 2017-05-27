@@ -30,6 +30,9 @@ namespace remill {
 /// This is a cs_insn wrapper with an automatic deallocator (cs_free).
 typedef std::unique_ptr<cs_insn, std::function<void(cs_insn *)>> CapInstrPtr;
 
+// Wrapper around a `remill::Instruction`.
+typedef std::unique_ptr<remill::Instruction> RemInstrPtr;
+
 /// This class is abstract and can't be used directly; you will have to inherit
 /// from this and specialize it for your architecture
 class CapstoneDisassembler {
@@ -39,7 +42,7 @@ class CapstoneDisassembler {
   virtual ~CapstoneDisassembler(void);
 
   /// Decodes exactly one instruction from the specified buffer.
-  void Decode(const std::unique_ptr<Instruction> &rem_instr, uint64_t vaddr,
+  void Decode(const RemInstrPtr &rem_instr, uint64_t vaddr,
               const std::string &instr_bytes) const;
 
   /// Disassembles the specified buffer trying to return exactly one opcode.
@@ -52,12 +55,14 @@ class CapstoneDisassembler {
     reference because the constructor is protected.
   */
 
-  void ConvertToRemInstr(const std::unique_ptr<Instruction> &rem_instr,
+  void ConvertToRemInstr(const RemInstrPtr &rem_instr,
                          const CapInstrPtr &cap_instr) const;
 
-  /// Returns the action type for the specified register.
-  Operand::Action RegAccessType(unsigned int reg_id,
-                                const CapInstrPtr &cap_instr) const;
+  virtual bool CanReadRegister(const CapInstrPtr &cap_instr, uint64_t reg_id,
+                               unsigned op_num) const = 0;
+
+  virtual bool CanWriteRegister(const CapInstrPtr &cap_instr, uint64_t reg_id,
+                                unsigned op_num) const = 0;
 
   //
   // Architecture-specific customizations
@@ -68,8 +73,8 @@ class CapstoneDisassembler {
 
   /// Returns the semantic function name for the specified instruction.
   virtual std::string SemFuncName(
-      const CapInstrPtr &cap_instr,
-      const std::vector<Operand> &op_list) const = 0;
+      const RemInstrPtr &rem_instr,
+      const CapInstrPtr &cap_instr) const = 0;
 
   // Hooks
   // Hooks are mandatory and must be implemented.
@@ -100,7 +105,9 @@ class CapstoneDisassembler {
     abort it.
   */
 
-  virtual std::vector<Operand> InstrOps(const CapInstrPtr &cap_instr) const = 0;
+  virtual void FillInstrOps(
+      const RemInstrPtr &rem_instr,
+      const CapInstrPtr &cap_instr) const = 0;
 
   /// Returns the address size, in bits
   virtual std::size_t AddressSize(void) const = 0;

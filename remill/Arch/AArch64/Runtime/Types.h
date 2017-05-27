@@ -8,11 +8,11 @@
 #ifndef REMILL_ARCH_AARCH64_RUNTIME_TYPES_H_
 #define REMILL_ARCH_AARCH64_RUNTIME_TYPES_H_
 
-// define 32 bit and 64 registers types
-// TODO: Check how arm accesses the 8/16 bits of registers;
-// Add new registers type as and when needed by semantics
+// TODO(pag): Check how arm accesses the 8/16 bits of registers;
+// TODO(pag): Add new registers type as and when needed by semantics.
 
-typedef RnW<IF_64BIT_ELSE(uint64_t, uint32_t)> R32W;
+typedef RnW<uint8_t> R8W;
+typedef RnW<uint32_t> R32W;  // TODO(pag): Does ARM zero-extend like x86?
 typedef RnW<uint64_t> R64W;
 
 typedef Rn<uint32_t> R32;

@@ -16,19 +16,10 @@
 
 namespace {
 
-template <typename D, typename S1, typename S2>
-DEF_SEM(DoMOV, D dst, S1, S2 src) {
-  Write(dst, Read(src));
-  return memory;
-}
-
-template <typename D, typename S1, typename S2>
-DEF_SEM(DoMOVZ, D dst, S1, S2 src) {
-  Write(dst, Read(src));
+DEF_SEM(DoNOP) {
   return memory;
 }
 
 }  // namespace
 
-DEF_ISEL(MOV_R64W_R64_R64) = DoMOV<R64W, R64, R64>;
-DEF_ISEL(MOVZ_R64W_R64_U64) = DoMOVZ<R64W, R64, I64>;
+DEF_ISEL(NOP) = DoNOP;
