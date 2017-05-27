@@ -49,6 +49,7 @@ class MipsDisassembler final : public CapstoneDisassembler {
                         unsigned op_num) const override;
 
   std::string RegName(uint64_t reg_id) const override;
+
   uint64_t RegSize(uint64_t reg_id) const override;
 
   void FillInstrOps(const RemInstrPtr &rem_instr,

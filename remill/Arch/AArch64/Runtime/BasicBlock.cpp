@@ -83,8 +83,6 @@ extern "C" {
   auto &W29 = state.gpr.X29.dword;
   auto &W30 = state.gpr.X30.dword;
 
-  auto &WZR = state.gpr.X31.dword;
-
   auto &X0 = state.gpr.X0.qword;
   auto &X1 = state.gpr.X1.qword;
   auto &X2 = state.gpr.X2.qword;
@@ -125,7 +123,7 @@ extern "C" {
   auto &X30 = state.gpr.X30.qword;
 
   auto &XZR = state.gpr.X31.qword;
-
+  auto &WZR = state.gpr.X31.dword;
 
   auto &FP = state.gpr.X29.qword;
   auto &WFP = state.gpr.X29.qword;

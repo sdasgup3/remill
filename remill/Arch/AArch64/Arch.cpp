@@ -125,13 +125,53 @@ std::string ARMDisassembler::SanitizeName(const char *mnemonic) const {
 }
 
 std::string ARMDisassembler::RegName(uint64_t reg_id) const {
-  if (!reg_id) {
-    return std::string();
+  if (ARM64_REG_INVALID == reg_id || ARM64_REG_ENDING == reg_id) {
+    return "";
+
+  } else {
+    auto reg_name = cs_reg_name(
+        GetCapstoneHandle(), static_cast<unsigned>(reg_id));
+
+    CHECK(reg_name != nullptr)
+        << "Cannot get name for register " << reg_id;
+
+    return SanitizeName(reg_name);
   }
-  return SanitizeName(cs_reg_name(GetCapstoneHandle(), reg_id));
 }
 
 uint64_t ARMDisassembler::RegSize(uint64_t reg_id) const {
+  switch (static_cast<arm64_reg>(reg_id)) {
+    case ARM64_REG_X0: case ARM64_REG_X1: case ARM64_REG_X2:
+    case ARM64_REG_X3: case ARM64_REG_X4: case ARM64_REG_X5:
+    case ARM64_REG_X6: case ARM64_REG_X7: case ARM64_REG_X8:
+    case ARM64_REG_X9: case ARM64_REG_X10: case ARM64_REG_X11:
+    case ARM64_REG_X12: case ARM64_REG_X13: case ARM64_REG_X14:
+    case ARM64_REG_X15: case ARM64_REG_X16: case ARM64_REG_X17:
+    case ARM64_REG_X18: case ARM64_REG_X19: case ARM64_REG_X20:
+    case ARM64_REG_X21: case ARM64_REG_X22: case ARM64_REG_X23:
+    case ARM64_REG_X24: case ARM64_REG_X25: case ARM64_REG_X26:
+    case ARM64_REG_X27: case ARM64_REG_X28: case ARM64_REG_X29:
+    case ARM64_REG_X30: case ARM64_REG_SP: case ARM64_REG_XZR:
+      return 64;
+    case ARM64_REG_W0: case ARM64_REG_W1: case ARM64_REG_W2:
+    case ARM64_REG_W3: case ARM64_REG_W4: case ARM64_REG_W5:
+    case ARM64_REG_W6: case ARM64_REG_W7: case ARM64_REG_W8:
+    case ARM64_REG_W9: case ARM64_REG_W10: case ARM64_REG_W11:
+    case ARM64_REG_W12: case ARM64_REG_W13: case ARM64_REG_W14:
+    case ARM64_REG_W15: case ARM64_REG_W16: case ARM64_REG_W17:
+    case ARM64_REG_W18: case ARM64_REG_W19: case ARM64_REG_W20:
+    case ARM64_REG_W21: case ARM64_REG_W22: case ARM64_REG_W23:
+    case ARM64_REG_W24: case ARM64_REG_W25: case ARM64_REG_W26:
+    case ARM64_REG_W27: case ARM64_REG_W28: case ARM64_REG_W29:
+    case ARM64_REG_W30: case ARM64_REG_WSP: case ARM64_REG_WZR:
+      return 32;
+    case ARM64_REG_INVALID: case ARM64_REG_ENDING:
+      return 0;
+    default:
+      LOG(FATAL)
+          << "Cannot get size of unrecognized register "
+          << RegName(reg_id);
+  }
   return d->address_size;
 }
 
@@ -217,26 +257,54 @@ void ARMDisassembler::DecodeRegister(const CapInstrPtr &cap_instr,
   Operand op = {};
   op.type = Operand::kTypeRegister;
   op.size = RegSize(arm64_operand.reg);
+
+  op.action = Operand::kActionInvalid;
   op.reg.size = RegSize(arm64_operand.reg);
   op.reg.name = RegName(arm64_operand.reg);
-  op.action = Operand::kActionInvalid;
+
+  op.shift_reg.reg.size = op.reg.size;  // Note: there is no overlap.
+  op.shift_reg.reg.name = op.reg.name;
+  op.shift_reg.amount = arm64_operand.shift.value;
 
   switch (arm64_operand.shift.type) {
-    case ARM64_SFT_LSL:
-    case ARM64_SFT_MSL:
-    case ARM64_SFT_LSR:
-    case ARM64_SFT_ASR:
-    case ARM64_SFT_ROR:
-      LOG(FATAL)
-          << "Unsupported register shift type.";
-      break;
     case ARM64_SFT_INVALID:
+      op.type = Operand::kTypeRegister;
+      break;
+    case ARM64_SFT_LSL:
+      op.type = Operand::kTypeShiftRegister;
+      op.shift_reg.operation = Operand::ShiftRegister::kShiftLeftWithZeroes;
+      break;
+    case ARM64_SFT_MSL:
+      op.type = Operand::kTypeShiftRegister;
+      op.shift_reg.operation = Operand::ShiftRegister::kShiftLeftWithOnes;
+      break;
+    case ARM64_SFT_LSR:
+      op.type = Operand::kTypeShiftRegister;
+      op.shift_reg.operation = Operand::ShiftRegister::kShiftUnsignedRight;
+      break;
+    case ARM64_SFT_ASR:
+      op.type = Operand::kTypeShiftRegister;
+      op.shift_reg.operation = Operand::ShiftRegister::kShiftSignedRight;
+      break;
+    case ARM64_SFT_ROR:
+      op.type = Operand::kTypeShiftRegister;
+      op.shift_reg.operation = Operand::ShiftRegister::kShiftRightAround;
       break;
   }
 
   if (CanWriteRegister(cap_instr, arm64_operand.reg, op_num)) {
     op.action = Operand::kActionWrite;
+    auto old_op = op;
+
+    // Writes to 32-bit GPRs zero extend to writes to 64 bits.
+    if (32 == op.reg.size && 'W' == op.reg.name[0]) {
+      op.size = 64;
+      op.reg.size = 64;
+      op.reg.name[0] = 'X';
+    }
+
     op_list.push_back(op);
+    op = old_op;
   }
 
   if (CanReadRegister(cap_instr, arm64_operand.reg, op_num)) {
@@ -508,6 +576,7 @@ std::string ARMDisassembler::SemFuncName(
             << "Invalid operand type";
         break;
 
+      case Operand::kTypeShiftRegister:
       case Operand::kTypeRegister:
         if (Operand::kActionRead == operand.action) {
           function_name << "_R" << operand.reg.size;

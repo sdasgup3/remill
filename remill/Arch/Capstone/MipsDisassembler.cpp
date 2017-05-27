@@ -61,25 +61,22 @@ std::string MipsDisassembler::SemFuncName(
 
   for (const Operand &operand : rem_instr->operands) {
     switch (operand.type) {
-      case Operand::kTypeInvalid: {
+      case Operand::kTypeInvalid:
         LOG(FATAL) << "Invalid operand type";
         break;
-      }
 
-      case Operand::kTypeRegister: {
+      case Operand::kTypeRegister:
+      case Operand::kTypeShiftRegister:
         func_name << "_R" << (operand.reg.size * 8);
         break;
-      }
 
-      case Operand::kTypeImmediate: {
+      case Operand::kTypeImmediate:
         func_name << "_" << (operand.imm.is_signed ? "S" : "U") << "I64";
         break;
-      }
 
-      case Operand::kTypeAddress: {
+      case Operand::kTypeAddress:
         func_name << "_M" << (operand.addr.address_size * 8);
         break;
-      }
     }
   }
 

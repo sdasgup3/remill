@@ -64,6 +64,38 @@ std::string Operand::Debug(void) const {
       ss << "(REG_" << reg.size << " " << reg.name << ")";
       break;
 
+    case Operand::kTypeShiftRegister:
+      ss << "(REG_" << reg.size << " " << reg.name << " ";
+      switch (shift_reg.operation) {
+        case Operand::ShiftRegister::kShiftInvalid:
+          LOG(FATAL)
+              << "Invalid shift operation for shift register operand.";
+          break;
+
+        case Operand::ShiftRegister::kShiftLeftWithZeroes:
+          ss << "<<0";
+          break;
+
+        case Operand::ShiftRegister::kShiftLeftWithOnes:
+          ss << "<<1";
+          break;
+
+        case Operand::ShiftRegister::kShiftUnsignedRight:
+          ss << "u>>";
+          break;
+
+        case Operand::ShiftRegister::kShiftSignedRight:
+          ss << "s>>";
+          break;
+
+        case Operand::ShiftRegister::kShiftRightAround:
+          ss << "ror";
+          break;
+      }
+
+      ss << " " << shift_reg.amount << ")";
+      break;
+
     case Operand::kTypeImmediate:
       ss << "(";
       if (imm.is_signed) {

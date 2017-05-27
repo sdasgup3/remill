@@ -52,25 +52,31 @@ class InstructionLifter {
 
  protected:
   // Lift an operand to an instruction.
-  virtual llvm::Value *LiftOperand(Instruction *instr,
+  virtual llvm::Value *LiftOperand(Instruction *inst,
                                    llvm::BasicBlock *block,
                                    llvm::Type *op_type,
                                    Operand &op);
 
   // Lift a register operand to a value.
-  virtual llvm::Value *LiftRegisterOperand(Instruction *instr,
+  virtual llvm::Value *LiftShiftRegisterOperand(Instruction *inst,
+                                                llvm::BasicBlock *block,
+                                                llvm::Type *arg_type,
+                                                Operand &reg);
+
+  // Lift a register operand to a value.
+  virtual llvm::Value *LiftRegisterOperand(Instruction *inst,
                                            llvm::BasicBlock *block,
                                            llvm::Type *arg_type,
                                            Operand &reg);
 
   // Lift an immediate operand.
-  virtual llvm::Value *LiftImmediateOperand(Instruction *instr,
+  virtual llvm::Value *LiftImmediateOperand(Instruction *inst,
                                             llvm::BasicBlock *block,
                                             llvm::Type *arg_type,
                                             Operand &op);
 
   // Lift an indirect memory operand to a value.
-  virtual llvm::Value *LiftAddressOperand(Instruction *instr,
+  virtual llvm::Value *LiftAddressOperand(Instruction *inst,
                                           llvm::BasicBlock *block,
                                           Operand &mem);
 
