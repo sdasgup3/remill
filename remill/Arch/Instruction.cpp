@@ -27,6 +27,12 @@ namespace remill {
 Operand::Register::Register(void)
     : size(0) {}
 
+Operand::ShiftRegister::ShiftRegister(void)
+    : shift_size(0),
+      extract_size(0),
+      shift_op(Operand::ShiftRegister::kShiftInvalid),
+      extend_op(Operand::ShiftRegister::kExtendInvalid) {}
+
 Operand::Immediate::Immediate(void)
     : val(0),
       is_signed(false) {}
@@ -65,11 +71,25 @@ std::string Operand::Debug(void) const {
       break;
 
     case Operand::kTypeShiftRegister:
-      ss << "(REG_" << reg.size << " " << reg.name << " ";
-      switch (shift_reg.operation) {
+      ss << "(REG_" << reg.size << " ";
+      switch (shift_reg.extend_op) {
+        case Operand::ShiftRegister::kExtendInvalid:
+          ss << reg.name;
+          break;
+
+        case Operand::ShiftRegister::kExtendSigned:
+          ss << "sext(" << reg.name << "[" << (shift_reg.extract_size - 1)
+             << ":0])";
+          break;
+
+        case Operand::ShiftRegister::kExtendUnsigned:
+          ss << "zext(" << reg.name << "[" << (shift_reg.extract_size - 1)
+             << ":0])";
+          break;
+      }
+
+      switch (shift_reg.shift_op) {
         case Operand::ShiftRegister::kShiftInvalid:
-          LOG(FATAL)
-              << "Invalid shift operation for shift register operand.";
           break;
 
         case Operand::ShiftRegister::kShiftLeftWithZeroes:
@@ -93,7 +113,7 @@ std::string Operand::Debug(void) const {
           break;
       }
 
-      ss << " " << shift_reg.amount << ")";
+      ss << " " << shift_reg.shift_size << ")";
       break;
 
     case Operand::kTypeImmediate:

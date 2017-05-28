@@ -254,42 +254,77 @@ void ARMDisassembler::DecodeRegister(const CapInstrPtr &cap_instr,
   auto arm64_ = &(cap_instr->detail->arm64);
   const auto &arm64_operand = arm64_->operands[op_num];
 
-  Operand op = {};
+  Operand op;
   op.type = Operand::kTypeRegister;
   op.size = RegSize(arm64_operand.reg);
-
-  op.action = Operand::kActionInvalid;
   op.reg.size = RegSize(arm64_operand.reg);
   op.reg.name = RegName(arm64_operand.reg);
 
   op.shift_reg.reg.size = op.reg.size;  // Note: there is no overlap.
   op.shift_reg.reg.name = op.reg.name;
-  op.shift_reg.amount = arm64_operand.shift.value;
+  op.shift_reg.shift_size = arm64_operand.shift.value;
 
-  switch (arm64_operand.shift.type) {
-    case ARM64_SFT_INVALID:
-      op.type = Operand::kTypeRegister;
-      break;
-    case ARM64_SFT_LSL:
-      op.type = Operand::kTypeShiftRegister;
-      op.shift_reg.operation = Operand::ShiftRegister::kShiftLeftWithZeroes;
-      break;
-    case ARM64_SFT_MSL:
-      op.type = Operand::kTypeShiftRegister;
-      op.shift_reg.operation = Operand::ShiftRegister::kShiftLeftWithOnes;
-      break;
-    case ARM64_SFT_LSR:
-      op.type = Operand::kTypeShiftRegister;
-      op.shift_reg.operation = Operand::ShiftRegister::kShiftUnsignedRight;
-      break;
-    case ARM64_SFT_ASR:
-      op.type = Operand::kTypeShiftRegister;
-      op.shift_reg.operation = Operand::ShiftRegister::kShiftSignedRight;
-      break;
-    case ARM64_SFT_ROR:
-      op.type = Operand::kTypeShiftRegister;
-      op.shift_reg.operation = Operand::ShiftRegister::kShiftRightAround;
-      break;
+  if (ARM64_SFT_INVALID != arm64_operand.shift.type ||
+      ARM64_EXT_INVALID != arm64_operand.ext) {
+
+    op.type = Operand::kTypeShiftRegister;
+
+    switch (arm64_operand.shift.type) {
+      case ARM64_SFT_INVALID:
+        break;
+      case ARM64_SFT_LSL:
+        op.shift_reg.shift_op = Operand::ShiftRegister::kShiftLeftWithZeroes;
+        break;
+      case ARM64_SFT_MSL:
+        op.shift_reg.shift_op = Operand::ShiftRegister::kShiftLeftWithOnes;
+        break;
+      case ARM64_SFT_LSR:
+        op.shift_reg.shift_op = Operand::ShiftRegister::kShiftUnsignedRight;
+        break;
+      case ARM64_SFT_ASR:
+        op.shift_reg.shift_op = Operand::ShiftRegister::kShiftSignedRight;
+        break;
+      case ARM64_SFT_ROR:
+        op.shift_reg.shift_op = Operand::ShiftRegister::kShiftRightAround;
+        break;
+    }
+
+    switch (arm64_operand.ext) {
+      case ARM64_EXT_INVALID:
+        break;
+      case ARM64_EXT_UXTB:
+        op.shift_reg.extract_size = 8;
+        op.shift_reg.extend_op = Operand::ShiftRegister::kExtendUnsigned;
+        break;
+      case ARM64_EXT_UXTH:
+        op.shift_reg.extract_size = 16;
+        op.shift_reg.extend_op = Operand::ShiftRegister::kExtendUnsigned;
+        break;
+      case ARM64_EXT_UXTW:
+        op.shift_reg.extract_size = 32;
+        op.shift_reg.extend_op = Operand::ShiftRegister::kExtendUnsigned;
+        break;
+      case ARM64_EXT_UXTX:
+        op.shift_reg.extract_size = 64;
+        op.shift_reg.extend_op = Operand::ShiftRegister::kExtendUnsigned;
+        break;
+      case ARM64_EXT_SXTB:
+        op.shift_reg.extract_size = 8;
+        op.shift_reg.extend_op = Operand::ShiftRegister::kExtendSigned;
+        break;
+      case ARM64_EXT_SXTH:
+        op.shift_reg.extract_size = 16;
+        op.shift_reg.extend_op = Operand::ShiftRegister::kExtendSigned;
+        break;
+      case ARM64_EXT_SXTW:
+        op.shift_reg.extract_size = 32;
+        op.shift_reg.extend_op = Operand::ShiftRegister::kExtendSigned;
+        break;
+      case ARM64_EXT_SXTX:
+        op.shift_reg.extract_size = 64;
+        op.shift_reg.extend_op = Operand::ShiftRegister::kExtendSigned;
+        break;
+    }
   }
 
   if (CanWriteRegister(cap_instr, arm64_operand.reg, op_num)) {
@@ -323,7 +358,7 @@ void ARMDisassembler::DecodeImmediate(const CapInstrPtr &cap_instr,
   auto arm64_ = &(cap_instr->detail->arm64);
   const auto &arm64_operand = arm64_->operands[op_num];
 
-  Operand op = {};
+  Operand op;
   op.type = Operand::kTypeImmediate;
   op.action = Operand::kActionRead;
   op.size = 64;
@@ -337,17 +372,19 @@ void ARMDisassembler::DecodeImmediate(const CapInstrPtr &cap_instr,
       op.imm.val <<= shift;
       break;
 
-    // TODO(pag): How do these work?
-    case ARM64_SFT_MSL:
-    case ARM64_SFT_LSR:
-    case ARM64_SFT_ASR:
-    case ARM64_SFT_ROR:
-      LOG(FATAL)
-          << "Unsupported immediate shift type.";
-      break;
     case ARM64_SFT_INVALID:
       break;
+
+    default:
+      LOG(FATAL)
+          << "Unsupported shift type for immediate operand "
+          << "in instruction " << std::hex << rem_instr->pc;
+      break;
   }
+
+  CHECK(arm64_operand.ext == ARM64_EXT_INVALID)
+      << "Extract and extend is not supported for immediate operand "
+      << "in instruction " << std::hex << rem_instr->pc;
 
   rem_instr->operands.push_back(op);
 
@@ -384,7 +421,7 @@ void ARMDisassembler::DecodeMemory(const CapInstrPtr &cap_instr,
   auto arm64_ = &(cap_instr->detail->arm64);
   const auto &arm64_operand = arm64_->operands[op_num];
 
-  Operand op = {};
+  Operand op;
   op.type = Operand::kTypeAddress;
 
   // TODO(pag): Capstone doesn't seem to give us this info, so we

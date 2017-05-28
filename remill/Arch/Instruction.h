@@ -62,17 +62,27 @@ class Operand {
 
   class ShiftRegister {
    public:
-    Register reg;
-    uint64_t amount;
+    ShiftRegister(void);
 
-    enum Shift : unsigned{
+    Register reg;
+    uint64_t shift_size;
+    uint64_t extract_size;
+
+    enum Shift : unsigned {
       kShiftInvalid,
       kShiftLeftWithZeroes,  // Shift left, filling low order bits with zero.
       kShiftLeftWithOnes,  // Shift left, filling low order bits with one.
       kShiftUnsignedRight,  // Also know as logical shift right.
       kShiftSignedRight,  // Also know as arithmetic shift right.
       kShiftRightAround  // Rotate right.
-    } operation;
+    } shift_op;
+
+    enum Extend : unsigned {
+      kExtendInvalid,
+      kExtendUnsigned,
+      kExtendSigned,
+    } extend_op;
+
   } shift_reg;
 
   // kTypeImmediate.

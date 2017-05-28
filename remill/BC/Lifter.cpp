@@ -244,6 +244,7 @@ llvm::Value *InstructionLifter::LiftShiftRegisterOperand(
 
   llvm::Function *func = block->getParent();
   llvm::Module *module = func->getParent();
+  auto &context = module->getContext();
   auto &arch_reg = op.shift_reg.reg;
 
   CHECK(arg_type->isIntegerTy())
@@ -254,56 +255,81 @@ llvm::Value *InstructionLifter::LiftShiftRegisterOperand(
   auto val = LoadRegValue(block, arch_reg.name);
   auto val_type = val->getType();
   auto val_size = data_layout.getTypeAllocSizeInBits(val_type);
-
   auto word_size = data_layout.getTypeAllocSizeInBits(word_type);
 
   const uint64_t zero = 0;
   const uint64_t one = 1;
-  const uint64_t shift_amount = op.shift_reg.amount;
+  const uint64_t shift_size = op.shift_reg.shift_size;
+
   const auto shift_val = llvm::ConstantInt::get(
-      val_type, shift_amount % (val_size - one));
+      val_type, shift_size % (val_size - one));
 
   llvm::IRBuilder<> ir(block);
-  switch (op.shift_reg.operation) {
-    case Operand::ShiftRegister::kShiftInvalid:
-      LOG(FATAL)
-          << "Invalid shift operation type for instruction at "
-          << std::hex << inst->pc;
-      break;
 
-    // Left shift.
-    case Operand::ShiftRegister::kShiftLeftWithZeroes:
-      val = ir.CreateShl(val, shift_val);
-      break;
+  if (Operand::ShiftRegister::kExtendInvalid != op.shift_reg.extend_op) {
+    auto extract_type = llvm::Type::getIntNTy(
+        context, op.shift_reg.extract_size);
 
-    // Masking shift left.
-    case Operand::ShiftRegister::kShiftLeftWithOnes: {
-      const auto mask_val = llvm::ConstantInt::get(
-          val_type, ~((~zero) << shift_amount));
-      val = ir.CreateOr(ir.CreateShl(val, shift_val), mask_val);
-      break;
-    }
+    val = ir.CreateTrunc(val, extract_type);
 
-    // Logical right shift.
-    case Operand::ShiftRegister::kShiftUnsignedRight:
-      val = ir.CreateLShr(val, shift_val);
-      break;
-
-    // Arithmetic right shift.
-    case Operand::ShiftRegister::kShiftSignedRight:
-      val = ir.CreateAShr(val, shift_val);
-      break;
-
-    // Rotate right.
-    case Operand::ShiftRegister::kShiftRightAround: {
-      const uint64_t shl_amount = (~shift_amount + one) & (val_size - one);
-      const auto shl_val = llvm::ConstantInt::get(val_type, shl_amount);
-      const auto val1 = ir.CreateLShr(val, shift_val);
-      const auto val2 = ir.CreateShl(val, shl_val);
-      val = ir.CreateAnd(val1, val2);
-      break;
+    switch (op.shift_reg.extend_op) {
+      case Operand::ShiftRegister::kExtendSigned:
+        val = ir.CreateSExt(val, val_type);
+        break;
+      case Operand::ShiftRegister::kExtendUnsigned:
+        val = ir.CreateZExt(val, val_type);
+        break;
+      default:
+        LOG(FATAL)
+            << "Invalid extend operation type for instruction at "
+            << std::hex << inst->pc;
+        break;
     }
   }
+
+  if (Operand::ShiftRegister::kShiftInvalid != op.shift_reg.shift_op) {
+    switch (op.shift_reg.shift_op) {
+      // Left shift.
+      case Operand::ShiftRegister::kShiftLeftWithZeroes:
+        val = ir.CreateShl(val, shift_val);
+        break;
+
+      // Masking shift left.
+      case Operand::ShiftRegister::kShiftLeftWithOnes: {
+        const auto mask_val = llvm::ConstantInt::get(
+            val_type, ~((~zero) << shift_size));
+        val = ir.CreateOr(ir.CreateShl(val, shift_val), mask_val);
+        break;
+      }
+
+      // Logical right shift.
+      case Operand::ShiftRegister::kShiftUnsignedRight:
+        val = ir.CreateLShr(val, shift_val);
+        break;
+
+      // Arithmetic right shift.
+      case Operand::ShiftRegister::kShiftSignedRight:
+        val = ir.CreateAShr(val, shift_val);
+        break;
+
+      // Rotate right.
+      case Operand::ShiftRegister::kShiftRightAround: {
+        const uint64_t shl_amount = (~shift_size + one) & (val_size - one);
+        const auto shl_val = llvm::ConstantInt::get(val_type, shl_amount);
+        const auto val1 = ir.CreateLShr(val, shift_val);
+        const auto val2 = ir.CreateShl(val, shl_val);
+        val = ir.CreateAnd(val1, val2);
+        break;
+      }
+
+      default:
+        LOG(FATAL)
+            << "Invalid shift operation type for instruction at "
+            << std::hex << inst->pc;
+        break;
+    }
+  }
+
 
   if (word_size > val_size) {
     val = ir.CreateZExt(val, word_type);
