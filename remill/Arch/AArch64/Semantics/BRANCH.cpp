@@ -86,7 +86,7 @@ DEF_SEM(DoDirectBranch, PC target_pc) {
   return memory;
 }
 
-DEF_SEM(DoIndirectBranch, R64W, PC dst) {
+DEF_SEM(DoIndirectBranch, PC dst) {
   Write(REG_PC, Read(dst));
   return memory;
 }
@@ -95,7 +95,27 @@ template <bool (*check_cond)(const State &)>
 DEF_SEM(DirectCondBranch, R8W cond, PC taken, PC not_taken) {
   addr_t taken_pc = Read(taken);
   addr_t not_taken_pc = Read(not_taken);
-  auto take_branch = check_cond(state);
+  uint8_t take_branch = check_cond(state);
+  Write(cond, take_branch);
+  Write(REG_PC, Select<addr_t>(take_branch, taken_pc, not_taken_pc));
+  return memory;
+}
+
+template <typename S>
+DEF_SEM(CBZ, R8W cond, S src, PC taken, PC not_taken) {
+  addr_t taken_pc = Read(taken);
+  addr_t not_taken_pc = Read(not_taken);
+  uint8_t take_branch = UCmpEq(Read(src), 0);
+  Write(cond, take_branch);
+  Write(REG_PC, Select<addr_t>(take_branch, taken_pc, not_taken_pc));
+  return memory;
+}
+
+template <typename S>
+DEF_SEM(CBNZ, R8W cond, S src, PC taken, PC not_taken) {
+  addr_t taken_pc = Read(taken);
+  addr_t not_taken_pc = Read(not_taken);
+  uint8_t take_branch = UCmpNeq(Read(src), 0);
   Write(cond, take_branch);
   Write(REG_PC, Select<addr_t>(take_branch, taken_pc, not_taken_pc));
   return memory;
@@ -103,29 +123,23 @@ DEF_SEM(DirectCondBranch, R8W cond, PC taken, PC not_taken) {
 
 }  // namespace
 
-DEF_ISEL(B_U64) = DoDirectBranch;
+DEF_ISEL(B_U) = DoDirectBranch;
 
-DEF_ISEL(B_LS_R8W_U64_U64) = DirectCondBranch<NotCond<CondHI>>;
+DEF_ISEL(B_LS_R8W_U_U) = DirectCondBranch<NotCond<CondHI>>;
 
-DEF_ISEL(B_EQ_R8W_U64_U64) = DirectCondBranch<CondEQ>;
-DEF_ISEL(B_NE_R8W_U64_U64) = DirectCondBranch<NotCond<CondEQ>>;
+DEF_ISEL(B_EQ_R8W_U_U) = DirectCondBranch<CondEQ>;
+DEF_ISEL(B_NE_R8W_U_U) = DirectCondBranch<NotCond<CondEQ>>;
 
-DEF_ISEL(B_GE_R8W_U64_U64) = DirectCondBranch<CondGE>;
-DEF_ISEL(B_GT_R8W_U64_U64) = DirectCondBranch<CondGT>;
+DEF_ISEL(B_GE_R8W_U_U) = DirectCondBranch<CondGE>;
+DEF_ISEL(B_GT_R8W_U_U) = DirectCondBranch<CondGT>;
 
-DEF_ISEL(B_LE_R8W_U64_U64) = DirectCondBranch<CondLE>;
-DEF_ISEL(B_LT_R8W_U64_U64) = DirectCondBranch<CondLT>;
+DEF_ISEL(B_LE_R8W_U_U) = DirectCondBranch<CondLE>;
+DEF_ISEL(B_LT_R8W_U_U) = DirectCondBranch<CondLT>;
 
-DEF_ISEL(BR_R64W_R64) = DoIndirectBranch;
+DEF_ISEL(BR_R64) = DoIndirectBranch;
 
-namespace {
+DEF_ISEL(CBZ_R8W_R64_U_U) = CBZ<R64>;
+DEF_ISEL(CBZ_R8W_R32_U_U) = CBZ<R32>;
 
-DEF_SEM(DoCall, PC target, PC return_addr) {
-  Write(REG_PC, Read(target));
-  Write(REG_LP, Read(return_addr));
-  return memory;
-}
-
-}  // namespace
-
-DEF_ISEL(BL_U64_U64) = DoCall;
+DEF_ISEL(CBNZ_R8W_R64_U_U) = CBNZ<R64>;
+DEF_ISEL(CBNZ_R8W_R32_U_U) = CBNZ<R32>;

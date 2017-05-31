@@ -71,6 +71,12 @@
 #define REG_X29 state.gpr.X29.qword
 #define REG_X30 state.gpr.X30.qword
 
+#define FLAG_Z state.state.Z  // Zero flag.
+#define FLAG_S state.state.S  // Sign flag.
+#define FLAG_C state.state.C  // Carry flag.
+#define FLAG_V state.state.V  // Overflow.
+#define FLAG_N state.state.N  // Negative.
+
 #define HYPER_CALL state.hyper_call
 #define INTERRUPT_VECTOR state.interrupt_vector
 
@@ -92,6 +98,8 @@ DEF_SEM(HandleInvalidInstruction) {
 // Takes the place of an unsupported instruction.
 DEF_ISEL(UNSUPPORTED_INSTRUCTION) = HandleUnsupported;
 DEF_ISEL(INVALID_INSTRUCTION) = HandleInvalidInstruction;
+
+#include "remill/Arch/AArch64/Semantics/FLAGS.cpp"
 
 #include "remill/Arch/AArch64/Semantics/BINARY.cpp"
 #include "remill/Arch/AArch64/Semantics/BRANCH.cpp"

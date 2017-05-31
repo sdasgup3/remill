@@ -16,12 +16,27 @@
 
 namespace {
 
-DEF_SEM(DoRET) { return memory; }
+template <typename T>
+DEF_SEM(CALL, T target_addr, PC ret_addr) {
+  Write(REG_LP, Read(ret_addr));
+  Write(REG_PC, Read(target_addr));
+  return memory;
+}
 
-DEF_SEM(DoSTP) { return memory; }
+DEF_SEM(RET_DEFAULT) {
+  Write(REG_PC, REG_LP);
+  return memory;
+}
+
+DEF_SEM(RET_EXPLICIT, R64 target) {
+  Write(REG_PC, Read(target));
+  return memory;
+}
 
 }  // namespace
 
-// DEF_ISEL_32or64(RET_NEAR_IMMw, RET_IMM);
-DEF_ISEL(RET) = DoRET;
-DEF_ISEL(STP) = DoSTP;
+DEF_ISEL(RET) = RET_DEFAULT;
+DEF_ISEL(RET_R64) = RET_EXPLICIT;
+
+DEF_ISEL(BL_U_U) = CALL<PC>;
+DEF_ISEL(BLR_R64_U) = CALL<R64>;

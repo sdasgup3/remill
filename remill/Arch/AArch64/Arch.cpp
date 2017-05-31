@@ -91,6 +91,7 @@ class ARMDisassembler final : public CapstoneDisassembler {
 
   void DecodeBranchTaken(std::vector<Operand> &op_list) const;
 
+  void DecodeBranchNotTaken(const RemInstrPtr &rem_instr) const;
 
   ARMDisassembler &operator=(const ARMDisassembler &other) = delete;
   ARMDisassembler(const ARMDisassembler &other) = delete;
@@ -222,30 +223,82 @@ uint64_t ARMDisassembler::RegSize(uint64_t reg_id) const {
 bool ARMDisassembler::CanReadRegister(
     const CapInstrPtr &cap_instr, uint64_t reg_id,
     unsigned op_num) const {
-  return true;
+  switch (static_cast<arm64_insn>(cap_instr->id)) {
+    case ARM64_INS_LDP:
+    case ARM64_INS_LDPSW:
+      return op_num > 1;
+
+    case ARM64_INS_STP:
+    case ARM64_INS_STRH:
+    case ARM64_INS_STRB:
+    case ARM64_INS_STR:
+      return true;
+
+    case ARM64_INS_LDR:
+    case ARM64_INS_LDRB:
+    case ARM64_INS_LDRSB:
+    case ARM64_INS_LDRH:
+    case ARM64_INS_LDRSH:
+    case ARM64_INS_LDRSW:
+    case ARM64_INS_MOV:
+      return op_num != 0;
+
+    // TODO(pag): Double check these.
+    case ARM64_INS_MOVI:
+    case ARM64_INS_MOVK:
+    case ARM64_INS_MOVN:
+    case ARM64_INS_MOVZ:
+      return op_num != 0;
+
+    case ARM64_INS_BLR:
+    case ARM64_INS_BR:
+    case ARM64_INS_RET:
+    case ARM64_INS_CBZ:
+    case ARM64_INS_CBNZ:
+      return true;
+
+    case ARM64_INS_CMP:
+      return true;
+
+    // Assume every register is read except the first one, on the assumption
+    // that the first operand, if it's a register, is a destination register.
+    default:
+      return op_num != 0;
+  }
 }
 
 bool ARMDisassembler::CanWriteRegister(
     const CapInstrPtr &cap_instr, uint64_t reg_id,
     unsigned op_num) const {
 
-  if (!op_num) {
-    return true;
-  }
+  switch (static_cast<arm64_insn>(cap_instr->id)) {
+    case ARM64_INS_LDP:
+    case ARM64_INS_LDPSW:
+      return op_num <= 1;
 
-  if (op_num < cap_instr->detail->arm64.op_count) {
-    return false;
-  }
+    case ARM64_INS_STP:
+      return false;
 
-  const auto regs_write = cap_instr->detail->regs_write;
-  auto num_write_regs = cap_instr->detail->regs_write_count;
+    case ARM64_INS_STRH:
+    case ARM64_INS_STRB:
+    case ARM64_INS_STR:
+      return false;
 
-  for (uint8_t i = 0; i < num_write_regs; i++) {
-    if (static_cast<uint64_t>(regs_write[i]) == reg_id) {
-      return true;
-    }
+    case ARM64_INS_BL:
+    case ARM64_INS_BR:
+    case ARM64_INS_BLR:
+    case ARM64_INS_RET:
+    case ARM64_INS_CBZ:
+    case ARM64_INS_CBNZ:
+      return false;
+
+    case ARM64_INS_CMP:
+      return false;
+
+    // Assume first register operand is always writable.
+    default:
+      return !op_num;
   }
-  return false;
 }
 
 void ARMDisassembler::DecodeRegister(const CapInstrPtr &cap_instr,
@@ -260,8 +313,7 @@ void ARMDisassembler::DecodeRegister(const CapInstrPtr &cap_instr,
   op.reg.size = RegSize(arm64_operand.reg);
   op.reg.name = RegName(arm64_operand.reg);
 
-  op.shift_reg.reg.size = op.reg.size;  // Note: there is no overlap.
-  op.shift_reg.reg.name = op.reg.name;
+  op.shift_reg.reg = op.reg;  // Note: there is no overlap.
   op.shift_reg.shift_size = arm64_operand.shift.value;
 
   if (ARM64_SFT_INVALID != arm64_operand.shift.type ||
@@ -328,18 +380,12 @@ void ARMDisassembler::DecodeRegister(const CapInstrPtr &cap_instr,
   }
 
   if (CanWriteRegister(cap_instr, arm64_operand.reg, op_num)) {
+    CHECK(op.type == Operand::kTypeRegister)
+        << "Cannot write to the register " << op.reg.name
+        << " participating in a shift, in instruction "
+        << std::hex << cap_instr->address;
     op.action = Operand::kActionWrite;
-    auto old_op = op;
-
-    // Writes to 32-bit GPRs zero extend to writes to 64 bits.
-    if (32 == op.reg.size && 'W' == op.reg.name[0]) {
-      op.size = 64;
-      op.reg.size = 64;
-      op.reg.name[0] = 'X';
-    }
-
     op_list.push_back(op);
-    op = old_op;
   }
 
   if (CanReadRegister(cap_instr, arm64_operand.reg, op_num)) {
@@ -350,6 +396,15 @@ void ARMDisassembler::DecodeRegister(const CapInstrPtr &cap_instr,
   CHECK(op.action != Operand::kActionInvalid)
       << "Register " << op.reg.name << " is neither read nor written "
       << "in instruction " << std::hex << cap_instr->address;
+
+//  const auto opcode = static_cast<arm64_insn>(cap_instr->id);
+//  if (opcode == ARM64_INS_ADR || opcode == ARM64_INS_ADRP) {
+//    op.action = Operand::kActionRead;
+//    op.type = Operand::kTypeRegister;
+//    op.size = AddressSize();
+//    op.reg.size = op.size;
+//    op.reg.name = "PC";
+//  }
 }
 
 void ARMDisassembler::DecodeImmediate(const CapInstrPtr &cap_instr,
@@ -358,18 +413,46 @@ void ARMDisassembler::DecodeImmediate(const CapInstrPtr &cap_instr,
   auto arm64_ = &(cap_instr->detail->arm64);
   const auto &arm64_operand = arm64_->operands[op_num];
 
+  auto imm = static_cast<uint64_t>(arm64_operand.imm);
+  auto shift = static_cast<uint64_t>(arm64_operand.shift.value);
+
+  // If this is a direct branch, then set up the branch-taken value.
+  switch (rem_instr->category) {
+    case Instruction::kCategoryConditionalBranch:
+    case Instruction::kCategoryDirectJump:
+    case Instruction::kCategoryDirectFunctionCall:
+      rem_instr->branch_taken_pc = imm;
+      break;
+
+    default:
+      break;
+  }
+
+  // Note: It seems that Capstone does the shifting, masking, and PC addition
+  //       in the case of `ADR` and `ADRP`.
+  //
+  // TODO(pag): Double check this.
+
   Operand op;
   op.type = Operand::kTypeImmediate;
   op.action = Operand::kActionRead;
-  op.size = 64;
+  op.size = AddressSize();
   op.imm.is_signed = false;  // Capstone doesn't even know :-(
-  op.imm.val = static_cast<uint64_t>(arm64_operand.imm);
 
-  auto shift = static_cast<uint64_t>(arm64_operand.shift.value);
+  // Now pass in the immediate value.
+  op.imm.val = imm;
+  rem_instr->operands.push_back(op);
 
+  // Now pass in the shift.
+  //
+  // TODO(pag): Two immediates, how does this correspond with McSema's
   switch (arm64_operand.shift.type) {
     case ARM64_SFT_LSL:
-      op.imm.val <<= shift;
+      LOG(FATAL)
+          << "LSL is not yet supported for instruction "
+          << std::hex << rem_instr->pc;
+      op.imm.val = shift;
+      rem_instr->operands.push_back(op);
       break;
 
     case ARM64_SFT_INVALID:
@@ -385,34 +468,6 @@ void ARMDisassembler::DecodeImmediate(const CapInstrPtr &cap_instr,
   CHECK(arm64_operand.ext == ARM64_EXT_INVALID)
       << "Extract and extend is not supported for immediate operand "
       << "in instruction " << std::hex << rem_instr->pc;
-
-  rem_instr->operands.push_back(op);
-
-  // If this is a conditional branch, then add in another immediate operand
-  // representing the not-taken address.
-  switch (rem_instr->category) {
-    case Instruction::kCategoryConditionalBranch:
-      rem_instr->branch_taken_pc = op.imm.val;
-      rem_instr->branch_not_taken_pc = rem_instr->next_pc;
-      op.imm.val = rem_instr->branch_not_taken_pc;
-      rem_instr->operands.push_back(op);
-      break;
-
-    case Instruction::kCategoryDirectJump:
-      rem_instr->branch_taken_pc = op.imm.val;
-      break;
-
-    case Instruction::kCategoryDirectFunctionCall:
-      rem_instr->branch_taken_pc = op.imm.val;
-
-      // Pass in the return address as another immediate operand.
-      op.imm.val = rem_instr->next_pc;
-      rem_instr->operands.push_back(op);
-      break;
-
-    default:
-      break;
-  }
 }
 
 void ARMDisassembler::DecodeMemory(const CapInstrPtr &cap_instr,
@@ -429,7 +484,9 @@ void ARMDisassembler::DecodeMemory(const CapInstrPtr &cap_instr,
   //            writes to memory.
   op.action = Operand::kActionWrite;
 
-  // TODO(pag): This should be the size of memory being read or written.
+  // TODO(pag): This should be the size of memory being read or written. I
+  //            don't think capstone even knows this, so the ISEL function
+  //            names don't actually specify a size.
   op.size = 64;
   op.addr.base_reg.size = RegSize(arm64_operand.mem.base);
   op.addr.base_reg.name = RegName(arm64_operand.mem.base);
@@ -448,6 +505,27 @@ void ARMDisassembler::DecodeBranchTaken(std::vector<Operand> &op_list) const {
   cond_op.reg.size = 8;
   cond_op.size = 8;
   op_list.push_back(cond_op);
+}
+
+void ARMDisassembler::DecodeBranchNotTaken(const RemInstrPtr &rem_instr) const {
+
+  Operand addr;
+  addr.action = Operand::kActionRead;
+  addr.type = Operand::kTypeImmediate;
+  addr.size = AddressSize();
+  addr.imm.is_signed = false;
+  addr.imm.val = rem_instr->next_pc;
+
+  switch (rem_instr->category) {
+    case Instruction::kCategoryConditionalBranch:
+    case Instruction::kCategoryDirectFunctionCall:
+    case Instruction::kCategoryIndirectFunctionCall:
+      rem_instr->operands.push_back(addr);
+      rem_instr->branch_not_taken_pc = rem_instr->next_pc;
+      break;
+    default:
+      break;
+  }
 }
 
 void ARMDisassembler::FillInstrOps(
@@ -520,6 +598,8 @@ void ARMDisassembler::FillInstrOps(
         break;
     }
   }
+
+  DecodeBranchNotTaken(rem_instr);
 }
 
 std::size_t ARMDisassembler::AddressSize(void) const {
@@ -533,7 +613,7 @@ Instruction::Category ARMDisassembler::InstrCategory(
       << "AArch32 is not yet supported";
 
 
-  switch (cap_instr->id) {
+  switch (static_cast<arm64_insn>(cap_instr->id)) {
     // TODO(pag): B.cond.
     case ARM64_INS_B:
       if (cap_instr->detail->arm64.cc == ARM64_CC_INVALID) {
@@ -601,11 +681,13 @@ std::string ARMDisassembler::SemFuncName(
 
   auto arm64 = &(cap_instr->detail->arm64);
 
-  // Add S bit state with the function name.
+  // Add S bit state with the function name, saying that this instruction will
+  // change the flags in the process state.
   if (arm64->update_flags) {
-    function_name << "_S1";
+    function_name << "_XFL";
   }
 
+  unsigned i = 0;
   for (const Operand &operand : rem_instr->operands) {
     switch (operand.type) {
       case Operand::kTypeInvalid:
@@ -625,18 +707,40 @@ std::string ARMDisassembler::SemFuncName(
         }
         break;
 
-      case Operand::kTypeImmediate:
+      case Operand::kTypeImmediate: {
         CHECK(Operand::kActionRead == operand.action)
             << "Invalid action for immediate operand.";
 
-        function_name
-            << "_" << (operand.imm.is_signed ? "S" : "U") << "64";
+        const auto &op = cap_instr->detail->arm64.operands[i];
+        switch (op.shift.type) {
+          case ARM64_SFT_INVALID:
+            function_name
+                << "_" << (operand.imm.is_signed ? "S" : "U");
+            break;
+          case ARM64_SFT_LSL:
+            function_name << "_LSL";
+            break;
+          case ARM64_SFT_MSL:
+            function_name << "_MSL";
+            break;
+          case ARM64_SFT_LSR:
+            function_name << "_LSR";
+            break;
+          case ARM64_SFT_ASR:
+            function_name << "_ASR";
+            break;
+          case ARM64_SFT_ROR:
+            function_name << "_ROR";
+            break;
+        }
         break;
+      }
 
       case Operand::kTypeAddress:
-        function_name << "_M" << operand.addr.address_size * 8;
+        function_name << "_M";
         break;
     }
+    ++i;
   }
 
   return function_name.str();

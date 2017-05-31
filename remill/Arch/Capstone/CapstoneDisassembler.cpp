@@ -144,6 +144,10 @@ void CapstoneDisassembler::ConvertToRemInstr(
   rem_instr->is_atomic_read_modify_write = false;
   FillInstrOps(rem_instr, cap_instr);
   rem_instr->function = SemFuncName(rem_instr, cap_instr);
+//  if (ARM64_INS_BLR == cap_instr->id) {
+//    LOG(ERROR)
+//        << rem_instr->Serialize();
+//  }
 }
 
 }  // namespace remill
