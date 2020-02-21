@@ -55,6 +55,10 @@ function GetUbuntuOSVersion
       OS_VERSION=ubuntu1404
       return 0
     ;;
+    zesty)
+      OS_VERSION=ubuntu1604
+      return 0
+    ;;
     *)
       echo "[x] Ubuntu ${DISTRIB_CODENAME} is not supported. Only xenial (16.04) and trusty (14.04) are supported."
       return 1
